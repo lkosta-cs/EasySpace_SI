@@ -1,0 +1,32 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "room-scheduler", "room-scheduler", "{D517B956-5645-347C-C6EA-88723B895D74}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "backend", "backend", "{7B54DDA4-8459-987A-E4DE-50C9D8549D12}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoomScheduler.API", "room-scheduler\backend\RoomScheduler.API\RoomScheduler.API.csproj", "{254A1943-CB6F-6C1E-2CBC-6B190DD26D85}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{254A1943-CB6F-6C1E-2CBC-6B190DD26D85}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{254A1943-CB6F-6C1E-2CBC-6B190DD26D85}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{254A1943-CB6F-6C1E-2CBC-6B190DD26D85}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{254A1943-CB6F-6C1E-2CBC-6B190DD26D85}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7B54DDA4-8459-987A-E4DE-50C9D8549D12} = {D517B956-5645-347C-C6EA-88723B895D74}
+		{254A1943-CB6F-6C1E-2CBC-6B190DD26D85} = {7B54DDA4-8459-987A-E4DE-50C9D8549D12}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B263C1A9-3FB1-4421-90DC-1A85F140E0C4}
+	EndGlobalSection
+EndGlobal
