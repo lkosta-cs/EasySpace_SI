@@ -12,16 +12,21 @@ public class AuthController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ITokenService _tokenService;
+    private readonly IEmailService _emailService;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        ITokenService tokenService)
+        ITokenService tokenService,
+        IEmailService emailService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _tokenService = tokenService;
+        _emailService = emailService;
     }
+
+    
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
@@ -73,11 +78,15 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
     {
         var user = await _userManager.FindByEmailAsync(dto.Email);
-        if (user == null) return Ok(); // don't reveal if email exists
+        if (user == null) return Ok();
 
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-        // In production send this via email - for now just return it
-        return Ok(new { token, userId = user.Id });
+        var encodedToken = Uri.EscapeDataString(token);
+        var resetLink = $"http://localhost:5173/reset-password?userId={user.Id}&token={encodedToken}";
+
+        await _emailService.SendPasswordResetEmailAsync(user.Email!, resetLink);
+
+        return Ok();
     }
 
     [HttpPost("reset-password")]

@@ -27,16 +27,22 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var users = await _userManager.Users
-            .Select(u => new {
-                id = u.Id,
-                email = u.Email,
-                fullName = u.FullName,
-                isActive = u.IsActive
-            })
-            .ToListAsync();
+        var users = await _userManager.Users.ToListAsync();
+        var result = new List<object>();
 
-        return Ok(users);
+        foreach (var user in users)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            result.Add(new {
+                id = user.Id,
+                email = user.Email,
+                fullName = user.FullName,
+                isActive = user.IsActive,
+                role = roles.FirstOrDefault() ?? "User"
+            });
+        }
+
+        return Ok(result);
     }
 
     // PUT /api/users/5/toggle-active — enable or disable a user
