@@ -43,11 +43,42 @@ builder.Services.AddAuthentication(opt => {
 builder.Services.AddAuthorization(opt => {
     opt.AddPolicy("AdminOnly", p => p.RequireRole("Admin"));
 });
+
 //Services registers controllers, swagger and CORS
 builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddControllers();
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+builder.Services.AddControllers()
+    .AddJsonOptions(opt => {
+        opt.JsonSerializerOptions.ReferenceHandler = 
+            System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+});
+
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+//SWAGGER
+builder.Services.AddSwaggerGen(opt => {
+    opt.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme {
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Enter: Bearer {token}",
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    opt.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+//CORS
 builder.Services.AddCors(opt =>
     opt.AddDefaultPolicy(p => p
         .AllowAnyOrigin()
