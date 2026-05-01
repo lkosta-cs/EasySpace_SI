@@ -150,7 +150,7 @@ export default function UserManagementPage() {
                     </button>
                     <select
                       onClick={(e) => e.stopPropagation()}
-                      defaultValue={user.role ?? 'User'}
+                      defaultValue={user.role ?? 'Professor'}
                       onChange={(e) =>
                         setRoleMutation.mutate({
                           id: user.id,
@@ -160,6 +160,8 @@ export default function UserManagementPage() {
                       className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900"
                     >
                       <option value="User">User</option>
+                      <option value="Professor">Professor</option>
+                      <option value="Assistant">Assistant</option>
                       <option value="Admin">Admin</option>
                     </select>
                   </div>

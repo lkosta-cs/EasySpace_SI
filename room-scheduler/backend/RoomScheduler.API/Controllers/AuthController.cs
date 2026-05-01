@@ -41,8 +41,7 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
             return Unauthorized("Invalid credentials");
 
-        var roles = await _userManager.GetRolesAsync(user);
-        var token = _tokenService.CreateToken(user, roles);
+        var token = _tokenService.CreateToken(user);
 
         return Ok(new {
             token,
@@ -50,7 +49,7 @@ public class AuthController : ControllerBase
                 id = user.Id,
                 email = user.Email,
                 fullName = user.FullName,
-                role = roles.FirstOrDefault()
+                role = user.Role.ToString()
             }
         });
     }
@@ -70,7 +69,6 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
             return BadRequest(result.Errors);
 
-        await _userManager.AddToRoleAsync(user, "User");
         return Ok("User registered successfully");
     }
 

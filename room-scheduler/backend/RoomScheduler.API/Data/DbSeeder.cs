@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using RoomScheduler.API.Models;
 
 namespace RoomScheduler.API.Data;
@@ -8,28 +9,50 @@ public static class DbSeeder
     public static async Task SeedAsync(IServiceProvider services)
     {
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+        var db = services.GetRequiredService<AppDbContext>();
 
-        // Create roles if they don't exist
-        foreach (var role in new[] { "Admin", "User" })
+        // Seed SuperAdmin
+        const string superAdminEmail = "superadmin@roomscheduler.local";
+        if (await userManager.FindByEmailAsync(superAdminEmail) == null)
         {
-            if (!await roleManager.RoleExistsAsync(role))
-                await roleManager.CreateAsync(new IdentityRole(role));
+            var superAdmin = new ApplicationUser {
+                UserName = superAdminEmail,
+                Email = superAdminEmail,
+                FullName = "Super Admin",
+                IsActive = true,
+                EmailConfirmed = true,
+                Role = UserRole.SuperAdmin
+            };
+            await userManager.CreateAsync(superAdmin, "SuperAdmin123!");
         }
 
-        // Create default admin if they don't exist
-        const string adminEmail = "admin@roomscheduler.local";
-        if (await userManager.FindByEmailAsync(adminEmail) == null)
+        // Seed OccasionTypeConfigs
+        if (!await db.OccasionTypeConfigs.AnyAsync())
         {
-            var admin = new ApplicationUser {
-                UserName = adminEmail,
-                Email = adminEmail,
-                FullName = "System Admin",
-                IsActive = true,
-                EmailConfirmed = true
-            };
-            await userManager.CreateAsync(admin, "Admin123!");
-            await userManager.AddToRoleAsync(admin, "Admin");
+            db.OccasionTypeConfigs.AddRange(
+                new OccasionTypeConfig {
+                    OccasionType = OccasionType.Kolokvijum,
+                    Label = "Kolokvijum",
+                    Color = "#2563eb",
+                    PendingColor = "#93c5fd",
+                    RequiresApproval = false
+                },
+                new OccasionTypeConfig {
+                    OccasionType = OccasionType.Ispit,
+                    Label = "Ispit",
+                    Color = "#dc2626",
+                    PendingColor = "#fca5a5",
+                    RequiresApproval = true
+                },
+                new OccasionTypeConfig {
+                    OccasionType = OccasionType.LabVezbe,
+                    Label = "Lab vežbe",
+                    Color = "#16a34a",
+                    PendingColor = "#86efac",
+                    RequiresApproval = false
+                }
+            );
+            await db.SaveChangesAsync();
         }
     }
 }

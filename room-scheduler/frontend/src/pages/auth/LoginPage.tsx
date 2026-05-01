@@ -25,21 +25,21 @@ export default function LoginPage() {
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = async (data: FormData) => {
-    try {
-      const res = await authApi.login(data.email, data.password);
-      const { token, user } = res.data;
-      setAuth(token, user);
-      toast.success(`Welcome back, ${user.fullName}!`);
-      if (user.role === 'Admin') {
-        navigate('/admin');
-      } else {
-        navigate('/app');
-      }
-    } catch {
-      toast.error('Invalid email or password');
+const onSubmit = async (data: FormData) => {
+  try {
+    const res = await authApi.login(data.email, data.password);
+    const { token, user } = res.data;
+    setAuth(token, user);
+    toast.success(`Welcome back, ${user.fullName}!`);
+    if (user.role === 'Admin' || user.role === 'SuperAdmin') {
+      navigate('/admin');
+    } else {
+      navigate('/app');
     }
-  };
+  } catch {
+    toast.error('Invalid email or password');
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
