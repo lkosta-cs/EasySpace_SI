@@ -211,5 +211,24 @@
     "0": "Kolokvijum",
     "1": "Exam",
     "2": "Lab session"
+  },
+  "role": {
+    "User": "Student",
+    "Assistant": "Assistant",
+    "Professor": "Professor",
+    "Admin": "Administrator",
+    "SuperAdmin": "Super Admin"
+  },
+  "department": {
+    "DEPARTMENT_CSY": "Control Systems",
+    "DEPARTMENT_EL": "Electronics",
+    "DEPARTMENT_PE": "Power Engineering",
+    "DEPARTMENT_MA": "Mathematics",
+    "DEPARTMENT_ME": "Measurements",
+    "DEPARTMENT_MI": "Microelectronics",
+    "DEPARTMENT_CSC": "Computer Science",
+    "DEPARTMENT_TE": "Telecommunications",
+    "DEPARTMENT_TEE": "Theoretical Electrical Engineering",
+    "DEPARTMENT_GE": "General Education"
   }
 }

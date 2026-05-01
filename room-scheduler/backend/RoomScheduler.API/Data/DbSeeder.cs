@@ -18,7 +18,8 @@ public static class DbSeeder
             var superAdmin = new ApplicationUser {
                 UserName = superAdminEmail,
                 Email = superAdminEmail,
-                FullName = "Super Admin",
+                FirstName = "Super",
+                LastName = "Admin",
                 IsActive = true,
                 EmailConfirmed = true,
                 Role = UserRole.SuperAdmin
