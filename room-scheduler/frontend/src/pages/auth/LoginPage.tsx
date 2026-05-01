@@ -3,19 +3,21 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { authApi } from '../../api/auth';
-
-const schema = z.object({
-  email: z.string().email('Please enter a valid email'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-type FormData = z.infer<typeof schema>;
+import LanguageSelector from '../../components/LanguageSelector';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((s) => s.setAuth);
+  const { t } = useTranslation();
+
+  const schema = z.object({
+    email: z.string().email(t('validation.emailInvalid')),
+    password: z.string().min(1, t('validation.passwordRequired')),
+  });
+  type FormData = z.infer<typeof schema>;
 
   const {
     register,
@@ -25,35 +27,38 @@ export default function LoginPage() {
     resolver: zodResolver(schema),
   });
 
-const onSubmit = async (data: FormData) => {
-  try {
-    const res = await authApi.login(data.email, data.password);
-    const { token, user } = res.data;
-    setAuth(token, user);
-    toast.success(`Welcome back, ${user.fullName}!`);
-    if (user.role === 'Admin' || user.role === 'SuperAdmin') {
-      navigate('/admin');
-    } else {
-      navigate('/app');
+  const onSubmit = async (data: FormData) => {
+    try {
+      const res = await authApi.login(data.email, data.password);
+      const { token, user } = res.data;
+      setAuth(token, user);
+      toast.success(t('toast.welcomeBack', { name: user.fullName }));
+      if (user.role === 'Admin' || user.role === 'SuperAdmin') {
+        navigate('/admin');
+      } else {
+        navigate('/app');
+      }
+    } catch {
+      toast.error(t('toast.invalidCredentials'));
     }
-  } catch {
-    toast.error('Invalid email or password');
-  }
-};
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSelector />
+      </div>
 
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-gray-900">EasySpace</h1>
-          <p className="text-sm text-gray-500 mt-1">Sign in to your account</p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t('app.title')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('auth.signInToAccount')}</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              {t('form.email')}
             </label>
             <input
               {...register('email')}
@@ -68,7 +73,7 @@ const onSubmit = async (data: FormData) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
+              {t('form.password')}
             </label>
             <input
               {...register('password')}
@@ -86,7 +91,7 @@ const onSubmit = async (data: FormData) => {
               to="/forgot-password"
               className="text-sm text-gray-500 hover:text-gray-900"
             >
-              Forgot password?
+              {t('auth.forgotPassword')}
             </Link>
           </div>
 
@@ -95,13 +100,14 @@ const onSubmit = async (data: FormData) => {
             disabled={isSubmitting}
             className="w-full bg-gray-900 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Signing in...' : 'Sign in'}
+            {isSubmitting ? t('auth.signingIn') : t('auth.signIn')}
           </button>
         </form>
+
         <p className="text-center text-sm text-gray-500 mt-6">
-          Don't have an account?{' '}
+          {t('auth.noAccount')}{' '}
           <Link to="/register" className="text-gray-900 font-medium hover:underline">
-            Sign up
+            {t('auth.signUp')}
           </Link>
         </p>
       </div>

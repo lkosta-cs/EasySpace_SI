@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { bookingsApi } from '../../api/bookings';
 import { format } from 'date-fns';
 
@@ -15,6 +16,7 @@ interface Booking {
 
 export default function BookingsPage() {
   const qc = useQueryClient();
+  const { t } = useTranslation();
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['all-bookings'],
@@ -25,25 +27,23 @@ export default function BookingsPage() {
     mutationFn: (id: number) => bookingsApi.cancel(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['all-bookings'] });
-      toast.success('Booking cancelled');
+      toast.success(t('toast.bookingCancelled'));
     },
-    onError: () => toast.error('Failed to cancel booking'),
+    onError: () => toast.error(t('toast.cancelFailed')),
   });
 
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Bookings</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
-          All room reservations across all users
-        </p>
+        <h2 className="text-xl font-semibold text-gray-900">{t('bookings.title')}</h2>
+        <p className="text-sm text-gray-500 mt-0.5">{t('bookings.subtitle')}</p>
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-gray-500">Loading bookings...</p>
+        <p className="text-sm text-gray-500">{t('bookings.loading')}</p>
       ) : bookings.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">No bookings yet.</p>
+          <p className="text-sm">{t('bookings.noBookings')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -54,9 +54,7 @@ export default function BookingsPage() {
             >
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-medium text-gray-900">
-                    {booking.roomName}
-                  </h3>
+                  <h3 className="text-sm font-medium text-gray-900">{booking.roomName}</h3>
                   <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                     {booking.userName}
                   </span>
@@ -69,16 +67,14 @@ export default function BookingsPage() {
                   {format(new Date(booking.end), 'HH:mm')}
                 </p>
                 {booking.notes && (
-                  <p className="text-xs text-gray-400 mt-1 italic">
-                    {booking.notes}
-                  </p>
+                  <p className="text-xs text-gray-400 mt-1 italic">{booking.notes}</p>
                 )}
               </div>
               <button
                 onClick={() => cancelMutation.mutate(booking.id)}
                 className="text-sm text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
               >
-                Cancel
+                {t('bookings.cancel')}
               </button>
             </div>
           ))}

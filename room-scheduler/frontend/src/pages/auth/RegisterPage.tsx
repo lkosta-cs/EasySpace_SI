@@ -3,22 +3,24 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { authApi } from '../../api/auth';
-
-const schema = z.object({
-  fullName: z.string().min(1, 'Full name is required'),
-  email: z.string().email('Please enter a valid email'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
-}).refine((d) => d.password === d.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
-
-type FormData = z.infer<typeof schema>;
+import LanguageSelector from '../../components/LanguageSelector';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  const schema = z.object({
+    fullName: z.string().min(1, t('validation.fullNameRequired')),
+    email: z.string().email(t('validation.emailInvalid')),
+    password: z.string().min(8, t('validation.passwordMin')),
+    confirmPassword: z.string(),
+  }).refine((d) => d.password === d.confirmPassword, {
+    message: t('validation.passwordsNoMatch'),
+    path: ['confirmPassword'],
+  });
+  type FormData = z.infer<typeof schema>;
 
   const {
     register,
@@ -31,26 +33,29 @@ export default function RegisterPage() {
   const onSubmit = async (data: FormData) => {
     try {
       await authApi.register(data.email, data.password, data.fullName);
-      toast.success('Account created successfully, please sign in');
+      toast.success(t('toast.accountCreated'));
       navigate('/login');
     } catch {
-      toast.error('Registration failed, email may already be in use');
+      toast.error(t('toast.registrationFailed'));
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSelector />
+      </div>
 
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-gray-900">Create account</h1>
-          <p className="text-sm text-gray-500 mt-1">Sign up for EasySpace</p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t('auth.createAccount')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('auth.signUpForEasySpace')}</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Full name
+              {t('form.fullName')}
             </label>
             <input
               {...register('fullName')}
@@ -64,7 +69,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              {t('form.email')}
             </label>
             <input
               {...register('email')}
@@ -79,7 +84,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
+              {t('form.password')}
             </label>
             <input
               {...register('password')}
@@ -94,7 +99,7 @@ export default function RegisterPage() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm password
+              {t('form.confirmPassword')}
             </label>
             <input
               {...register('confirmPassword')}
@@ -112,17 +117,16 @@ export default function RegisterPage() {
             disabled={isSubmitting}
             className="w-full bg-gray-900 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Creating account...' : 'Create account'}
+            {isSubmitting ? t('auth.creatingAccount') : t('auth.createAccount')}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Already have an account?{' '}
+          {t('auth.haveAccount')}{' '}
           <Link to="/login" className="text-gray-900 font-medium hover:underline">
-            Sign in
+            {t('auth.signIn')}
           </Link>
         </p>
-
       </div>
     </div>
   );

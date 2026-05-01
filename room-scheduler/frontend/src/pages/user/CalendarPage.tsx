@@ -8,23 +8,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { bookingsApi } from '../../api/bookings';
 import { roomsApi } from '../../api/rooms';
 import { occasionConfigApi } from '../../api/occasionConfig';
 import { useAuthStore } from '../../stores/authStore';
 import { format } from 'date-fns';
-
-const schema = z.object({
-  roomId: z.coerce.number().min(1, 'Please select a room'),
-  notes: z.string().optional(),
-  occasionType: z.coerce.number().min(0),
-  recurrencePattern: z.string().optional(),
-  recurrenceEndDate: z.string().optional(),
-  startTime: z.string(),
-  endTime: z.string(),
-});
-
-type FormData = z.infer<typeof schema>;
 
 interface Booking {
   id: number;
@@ -54,18 +43,30 @@ interface OccasionConfig {
   requiresApproval: boolean;
 }
 
-const OCCASION_TYPES = [
-  { value: 0, label: 'Kolokvijum' },
-  { value: 1, label: 'Ispit' },
-  { value: 2, label: 'Lab vežbe' },
-];
-
 export default function CalendarPage() {
   const qc = useQueryClient();
   const { user } = useAuthStore();
+  const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
   const [conflictDates, setConflictDates] = useState<string[]>([]);
+
+  const OCCASION_TYPES = [
+    { value: 0, label: t('occasionType.0') },
+    { value: 1, label: t('occasionType.1') },
+    { value: 2, label: t('occasionType.2') },
+  ];
+
+  const schema = z.object({
+    roomId: z.coerce.number().min(1, t('validation.roomRequired')),
+    notes: z.string().optional(),
+    occasionType: z.coerce.number().min(0),
+    recurrencePattern: z.string().optional(),
+    recurrenceEndDate: z.string().optional(),
+    startTime: z.string(),
+    endTime: z.string(),
+  });
+  type FormData = z.infer<typeof schema>;
 
   const { data: bookings = [] } = useQuery({
     queryKey: ['bookings'],
@@ -85,11 +86,10 @@ export default function CalendarPage() {
   const getConfig = (occasionType: number): OccasionConfig | undefined =>
     configs.find((c: OccasionConfig) => c.occasionType === occasionType);
 
-  // Filter available occasion types based on role
   const availableOccasions = OCCASION_TYPES.filter(o => {
-    if (user?.role === 'Assistant') return o.value === 2; // LabVezbe only
-    if (user?.role === 'Professor') return o.value !== 2; // Kolokvijum + Ispit
-    return true; // Admin/SuperAdmin see all
+    if (user?.role === 'Assistant') return o.value === 2;
+    if (user?.role === 'Professor') return o.value !== 2;
+    return true;
   });
 
   const {
@@ -131,9 +131,13 @@ export default function CalendarPage() {
     onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ['bookings'] });
       if (result.status === 'Pending') {
-        toast.success('Booking submitted and awaiting approval');
+        toast.success(t('toast.bookingPending'));
       } else {
-        toast.success(`${result.count > 1 ? `${result.count} bookings` : 'Booking'} created successfully`);
+        toast.success(
+          result.count > 1
+            ? t('toast.bookingsCreated', { count: result.count })
+            : t('toast.bookingCreated')
+        );
       }
       setModalOpen(false);
       setConflictDates([]);
@@ -143,9 +147,9 @@ export default function CalendarPage() {
       const data = err?.response?.data;
       if (data?.conflictingDates) {
         setConflictDates(data.conflictingDates);
-        toast.error('Conflicts found — please choose a different time');
+        toast.error(t('toast.conflictsFound'));
       } else {
-        toast.error('Failed to create booking');
+        toast.error(t('toast.bookingFailed'));
       }
     },
   });
@@ -172,13 +176,10 @@ export default function CalendarPage() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Calendar</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Click and drag to book a room
-        </p>
+        <h2 className="text-xl font-semibold text-gray-900">{t('calendar.title')}</h2>
+        <p className="text-sm text-gray-500 mt-0.5">{t('calendar.subtitle')}</p>
       </div>
 
-      {/* Legend */}
       {configs.length > 0 && (
         <div className="flex gap-4 mb-4 flex-wrap">
           {configs.map((config: OccasionConfig) => (
@@ -189,13 +190,13 @@ export default function CalendarPage() {
               />
               <span className="text-xs text-gray-600">{config.label}</span>
               {config.requiresApproval && (
-                <span className="text-xs text-gray-400">(requires approval)</span>
+                <span className="text-xs text-gray-400">{t('calendar.requiresApproval')}</span>
               )}
             </div>
           ))}
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-gray-300" />
-            <span className="text-xs text-gray-600">Pending</span>
+            <span className="text-xs text-gray-600">{t('calendar.pending')}</span>
           </div>
         </div>
       )}
@@ -237,22 +238,20 @@ export default function CalendarPage() {
         />
       </div>
 
-      {/* Booking modal */}
       {modalOpen && selectedSlot && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-medium text-gray-900 mb-1">
-              Book a room
+              {t('calendar.bookRoom')}
             </h3>
             <p className="text-sm text-gray-500 mb-5">
               {format(selectedSlot.start, 'EEEE, MMMM d yyyy')}
             </p>
 
-            {/* Conflict warning */}
             {conflictDates.length > 0 && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
                 <p className="text-sm font-medium text-red-700 mb-1">
-                  Conflicts found on these dates:
+                  {t('calendar.conflictsFoundOn')}
                 </p>
                 <ul className="text-xs text-red-600 space-y-0.5">
                   {conflictDates.map((d, i) => (
@@ -260,7 +259,7 @@ export default function CalendarPage() {
                   ))}
                 </ul>
                 <p className="text-xs text-red-500 mt-2">
-                  Please adjust the time or choose a different room.
+                  {t('calendar.adjustTime')}
                 </p>
               </div>
             )}
@@ -269,11 +268,10 @@ export default function CalendarPage() {
               onSubmit={handleSubmit((d) => createBooking.mutate(d))}
               className="space-y-4"
             >
-              {/* Time pickers */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Start time
+                    {t('calendar.startTime')}
                   </label>
                   <input
                     {...register('startTime')}
@@ -283,7 +281,7 @@ export default function CalendarPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    End time
+                    {t('calendar.endTime')}
                   </label>
                   <input
                     {...register('endTime')}
@@ -293,10 +291,9 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              {/* Occasion type */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Occasion type
+                  {t('calendar.occasionType')}
                 </label>
                 <select
                   {...register('occasionType')}
@@ -308,19 +305,18 @@ export default function CalendarPage() {
                 </select>
               </div>
 
-              {/* Room */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Room
+                  {t('calendar.room')}
                 </label>
                 <select
                   {...register('roomId')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                 >
-                  <option value="">Select a room</option>
+                  <option value="">{t('calendar.selectRoom')}</option>
                   {rooms.map((room: Room) => (
                     <option key={room.id} value={room.id}>
-                      {room.name} ({room.seats} seats)
+                      {room.name} ({t('rooms.seatsLabel', { count: room.seats })})
                     </option>
                   ))}
                 </select>
@@ -329,27 +325,25 @@ export default function CalendarPage() {
                 )}
               </div>
 
-              {/* Recurrence */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Repeat
+                  {t('calendar.repeat')}
                 </label>
                 <select
                   {...register('recurrencePattern')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                 >
-                  <option value="">Does not repeat</option>
-                  <option value="0">Every week</option>
-                  <option value="1">Every 2 weeks</option>
-                  <option value="2">Every month</option>
+                  <option value="">{t('calendar.doesNotRepeat')}</option>
+                  <option value="0">{t('calendar.everyWeek')}</option>
+                  <option value="1">{t('calendar.every2Weeks')}</option>
+                  <option value="2">{t('calendar.everyMonth')}</option>
                 </select>
               </div>
 
-              {/* Recurrence end date */}
               {recurrencePattern && recurrencePattern !== '' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Repeat until
+                    {t('calendar.repeatUntil')}
                   </label>
                   <input
                     {...register('recurrenceEndDate')}
@@ -360,14 +354,13 @@ export default function CalendarPage() {
                 </div>
               )}
 
-              {/* Notes */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes (optional)
+                  {t('form.notes')}
                 </label>
                 <input
                   {...register('notes')}
-                  placeholder="What is this room being used for?"
+                  placeholder={t('form.notesPlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                 />
               </div>
@@ -378,14 +371,14 @@ export default function CalendarPage() {
                   disabled={isSubmitting}
                   className="flex-1 bg-gray-900 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Booking...' : 'Book room'}
+                  {isSubmitting ? t('calendar.booking') : t('calendar.bookRoomBtn')}
                 </button>
                 <button
                   type="button"
                   onClick={closeModal}
                   className="flex-1 py-2 px-4 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
                 >
-                  Cancel
+                  {t('calendar.cancel')}
                 </button>
               </div>
             </form>

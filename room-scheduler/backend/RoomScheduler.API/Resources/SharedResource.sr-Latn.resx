@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- Auth -->
+  <data name="InvalidCredentials" xml:space="preserve">
+    <value>Pogrešni podaci za prijavljivanje</value>
+  </data>
+  <data name="UserRegisteredSuccessfully" xml:space="preserve">
+    <value>Korisnik je uspešno registrovan</value>
+  </data>
+  <data name="InvalidRequest" xml:space="preserve">
+    <value>Neispravan zahtev</value>
+  </data>
+  <data name="PasswordResetSuccessfully" xml:space="preserve">
+    <value>Lozinka je uspešno resetovana</value>
+  </data>
+
+  <!-- Bookings -->
+  <data name="RoomNotFoundOrInactive" xml:space="preserve">
+    <value>Sala nije pronađena ili je neaktivna</value>
+  </data>
+  <data name="BookingIsNotPending" xml:space="preserve">
+    <value>Rezervacija nije na čekanju</value>
+  </data>
+  <data name="ConflictsFoundMessage" xml:space="preserve">
+    <value>Konflikti pronađeni na sledećim datumima</value>
+  </data>
+
+  <!-- Users -->
+  <data name="InvalidRole" xml:space="preserve">
+    <value>Nevažeća uloga</value>
+  </data>
+
+  <!-- Email: password reset -->
+  <data name="EmailPasswordResetSubject" xml:space="preserve">
+    <value>Resetujte svoju EasySpace lozinku</value>
+  </data>
+  <data name="EmailPasswordResetH2" xml:space="preserve">
+    <value>Resetujte lozinku</value>
+  </data>
+  <data name="EmailPasswordResetP" xml:space="preserve">
+    <value>Kliknite na link ispod da resetujete lozinku:</value>
+  </data>
+  <data name="EmailPasswordResetExpiry" xml:space="preserve">
+    <value>Link ističe za 1 sat.</value>
+  </data>
+  <data name="EmailPasswordResetIgnore" xml:space="preserve">
+    <value>Ako niste zatražili resetovanje lozinke, ignorišite ovaj email.</value>
+  </data>
+
+  <!-- Email: pending approval -->
+  <data name="EmailPendingSubject" xml:space="preserve">
+    <value>Nova rezervacija čeka odobrenje</value>
+  </data>
+  <data name="EmailPendingH2" xml:space="preserve">
+    <value>Nova rezervacija zahteva odobrenje</value>
+  </data>
+  <data name="EmailPendingHasRequested" xml:space="preserve">
+    <value>je zatražio rezervaciju:</value>
+  </data>
+  <data name="EmailPendingRoom" xml:space="preserve">
+    <value>Sala</value>
+  </data>
+  <data name="EmailPendingType" xml:space="preserve">
+    <value>Vrsta</value>
+  </data>
+  <data name="EmailPendingDate" xml:space="preserve">
+    <value>Datum</value>
+  </data>
+  <data name="EmailPendingAction" xml:space="preserve">
+    <value>Prijavite se da odobrite ili odbijete rezervaciju.</value>
+  </data>
+
+  <!-- Email: approved -->
+  <data name="EmailApprovedSubject" xml:space="preserve">
+    <value>Vaša rezervacija je odobrena</value>
+  </data>
+  <data name="EmailApprovedH2" xml:space="preserve">
+    <value>Rezervacija odobrena</value>
+  </data>
+  <data name="EmailApprovedBody" xml:space="preserve">
+    <value>Vaša rezervacija je odobrena:</value>
+  </data>
+
+  <!-- Email: rejected -->
+  <data name="EmailRejectedSubject" xml:space="preserve">
+    <value>Vaša rezervacija je odbijena</value>
+  </data>
+  <data name="EmailRejectedH2" xml:space="preserve">
+    <value>Rezervacija odbijena</value>
+  </data>
+  <data name="EmailRejectedBody" xml:space="preserve">
+    <value>Nažalost, vaša rezervacija je odbijena:</value>
+  </data>
+  <data name="EmailRejectedReason" xml:space="preserve">
+    <value>Razlog</value>
+  </data>
+
+  <!-- Email: cancelled -->
+  <data name="EmailCancelledSubject" xml:space="preserve">
+    <value>Vaša rezervacija je otkazana</value>
+  </data>
+  <data name="EmailCancelledH2" xml:space="preserve">
+    <value>Rezervacija otkazana</value>
+  </data>
+  <data name="EmailCancelledBody" xml:space="preserve">
+    <value>Vašu rezervaciju je otkazao administrator:</value>
+  </data>
+
+  <!-- Email: shared -->
+  <data name="EmailGreeting" xml:space="preserve">
+    <value>Zdravo</value>
+  </data>
+  <data name="EmailRoom" xml:space="preserve">
+    <value>Sala</value>
+  </data>
+  <data name="EmailDate" xml:space="preserve">
+    <value>Datum</value>
+  </data>
+</root>

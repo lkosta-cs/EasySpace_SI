@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { bookingsApi } from '../../api/bookings';
 import { format } from 'date-fns';
 
@@ -18,6 +19,7 @@ interface Booking {
 
 export default function MyBookingsPage() {
   const qc = useQueryClient();
+  const { t } = useTranslation();
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['my-bookings'],
@@ -28,28 +30,24 @@ export default function MyBookingsPage() {
     mutationFn: (id: number) => bookingsApi.cancel(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['my-bookings'] });
-      toast.success('Booking cancelled');
+      toast.success(t('toast.bookingCancelled'));
     },
-    onError: () => toast.error('Failed to cancel booking'),
+    onError: () => toast.error(t('toast.cancelFailed')),
   });
 
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">My Bookings</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Your upcoming and past room reservations
-        </p>
+        <h2 className="text-xl font-semibold text-gray-900">{t('myBookings.title')}</h2>
+        <p className="text-sm text-gray-500 mt-0.5">{t('myBookings.subtitle')}</p>
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-gray-500">Loading bookings...</p>
+        <p className="text-sm text-gray-500">{t('myBookings.loading')}</p>
       ) : bookings.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">No bookings yet.</p>
-          <p className="text-sm mt-1">
-            Go to the calendar and drag to book a room.
-          </p>
+          <p className="text-sm">{t('myBookings.noBookings')}</p>
+          <p className="text-sm mt-1">{t('myBookings.goToCalendar')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -72,14 +70,14 @@ export default function MyBookingsPage() {
                       ? 'bg-red-100 text-red-600'
                       : 'bg-gray-100 text-gray-600'
                   }`}>
-                    {booking.status}
+                    {t(`status.${booking.status}`, { defaultValue: booking.status })}
                   </span>
                   <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
                     {booking.occasionTypeLabel}
                   </span>
                   {booking.recurringGroupId && (
                     <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
-                      Recurring
+                      {t('myBookings.recurring')}
                     </span>
                   )}
                 </div>
@@ -91,9 +89,7 @@ export default function MyBookingsPage() {
                   {format(new Date(booking.end), 'HH:mm')}
                 </p>
                 {booking.notes && (
-                  <p className="text-xs text-gray-400 mt-1 italic">
-                    {booking.notes}
-                  </p>
+                  <p className="text-xs text-gray-400 mt-1 italic">{booking.notes}</p>
                 )}
               </div>
               {booking.status === 'Confirmed' && (
@@ -101,7 +97,7 @@ export default function MyBookingsPage() {
                   onClick={() => cancelMutation.mutate(booking.id)}
                   className="text-sm text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
                 >
-                  Cancel
+                  {t('myBookings.cancel')}
                 </button>
               )}
             </div>

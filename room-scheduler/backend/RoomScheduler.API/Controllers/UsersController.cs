@@ -2,8 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using RoomScheduler.API.Data;
 using RoomScheduler.API.Models;
+using RoomScheduler.API.Resources;
 
 namespace RoomScheduler.API.Controllers;
 
@@ -14,13 +16,16 @@ public class UsersController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly AppDbContext _db;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
     public UsersController(
         UserManager<ApplicationUser> userManager,
-        AppDbContext db)
+        AppDbContext db,
+        IStringLocalizer<SharedResource> localizer)
     {
         _userManager = userManager;
         _db = db;
+        _localizer = localizer;
     }
 
     // GET /api/users — list all users
@@ -67,7 +72,7 @@ public class UsersController : ControllerBase
             return Forbid();
 
         if (!Enum.TryParse<UserRole>(dto.Role, out var newRole))
-            return BadRequest("Invalid role");
+            return BadRequest(_localizer["InvalidRole"].Value);
 
         var user = await _userManager.FindByIdAsync(id);
         if (user == null) return NotFound();

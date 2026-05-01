@@ -8,22 +8,11 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { bookingsApi } from '../../api/bookings';
 import { roomsApi } from '../../api/rooms';
 import { occasionConfigApi } from '../../api/occasionConfig';
 import { format } from 'date-fns';
-
-const schema = z.object({
-  roomId: z.coerce.number().min(1, 'Please select a room'),
-  notes: z.string().optional(),
-  occasionType: z.coerce.number().min(0),
-  recurrencePattern: z.string().optional(),
-  recurrenceEndDate: z.string().optional(),
-  startTime: z.string(),
-  endTime: z.string(),
-});
-
-type FormData = z.infer<typeof schema>;
 
 interface Booking {
   id: number;
@@ -53,20 +42,32 @@ interface OccasionConfig {
   requiresApproval: boolean;
 }
 
-const OCCASION_TYPES = [
-  { value: 0, label: 'Kolokvijum' },
-  { value: 1, label: 'Ispit' },
-  { value: 2, label: 'Lab vežbe' },
-];
-
 export default function AdminCalendarPage() {
   const qc = useQueryClient();
+  const { t } = useTranslation();
   const [bookingModal, setBookingModal] = useState(false);
   const [detailModal, setDetailModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [conflictDates, setConflictDates] = useState<string[]>([]);
   const [rejectReason, setRejectReason] = useState('');
+
+  const OCCASION_TYPES = [
+    { value: 0, label: t('occasionType.0') },
+    { value: 1, label: t('occasionType.1') },
+    { value: 2, label: t('occasionType.2') },
+  ];
+
+  const schema = z.object({
+    roomId: z.coerce.number().min(1, t('validation.roomRequired')),
+    notes: z.string().optional(),
+    occasionType: z.coerce.number().min(0),
+    recurrencePattern: z.string().optional(),
+    recurrenceEndDate: z.string().optional(),
+    startTime: z.string(),
+    endTime: z.string(),
+  });
+  type FormData = z.infer<typeof schema>;
 
   const { data: bookings = [] } = useQuery({
     queryKey: ['all-bookings'],
@@ -94,10 +95,7 @@ export default function AdminCalendarPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormData, unknown, FormData>({
     resolver: zodResolver(schema) as any,
-    defaultValues: {
-      occasionType: 0,
-      recurrencePattern: '',
-    }
+    defaultValues: { occasionType: 0, recurrencePattern: '' }
   });
 
   const recurrencePattern = watch('recurrencePattern');
@@ -121,7 +119,11 @@ export default function AdminCalendarPage() {
     },
     onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ['all-bookings'] });
-      toast.success(`${result.count > 1 ? `${result.count} bookings` : 'Booking'} created`);
+      toast.success(
+        result.count > 1
+          ? t('toast.bookingsCreated', { count: result.count })
+          : t('toast.bookingCreated')
+      );
       setBookingModal(false);
       setConflictDates([]);
       reset();
@@ -130,9 +132,9 @@ export default function AdminCalendarPage() {
       const data = err?.response?.data;
       if (data?.conflictingDates) {
         setConflictDates(data.conflictingDates);
-        toast.error('Conflicts found — please choose a different time');
+        toast.error(t('toast.conflictsFound'));
       } else {
-        toast.error('Failed to create booking');
+        toast.error(t('toast.bookingFailed'));
       }
     },
   });
@@ -141,11 +143,11 @@ export default function AdminCalendarPage() {
     mutationFn: (id: number) => bookingsApi.cancel(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['all-bookings'] });
-      toast.success('Booking cancelled');
+      toast.success(t('toast.bookingCancelled'));
       setDetailModal(false);
       setSelectedBooking(null);
     },
-    onError: () => toast.error('Failed to cancel booking'),
+    onError: () => toast.error(t('toast.cancelFailed')),
   });
 
   const approveMutation = useMutation({
@@ -153,11 +155,11 @@ export default function AdminCalendarPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['all-bookings'] });
       qc.invalidateQueries({ queryKey: ['pending-bookings'] });
-      toast.success('Booking approved');
+      toast.success(t('toast.bookingApproved'));
       setDetailModal(false);
       setSelectedBooking(null);
     },
-    onError: () => toast.error('Failed to approve booking'),
+    onError: () => toast.error(t('toast.approveFailed')),
   });
 
   const rejectMutation = useMutation({
@@ -166,12 +168,12 @@ export default function AdminCalendarPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['all-bookings'] });
       qc.invalidateQueries({ queryKey: ['pending-bookings'] });
-      toast.success('Booking rejected');
+      toast.success(t('toast.bookingRejected'));
       setDetailModal(false);
       setSelectedBooking(null);
       setRejectReason('');
     },
-    onError: () => toast.error('Failed to reject booking'),
+    onError: () => toast.error(t('toast.rejectFailed')),
   });
 
   const onSelect = (info: { start: Date; end: Date }) => {
@@ -187,9 +189,7 @@ export default function AdminCalendarPage() {
   };
 
   const onEventClick = (info: any) => {
-    const booking = bookings.find(
-      (b: Booking) => String(b.id) === info.event.id
-    );
+    const booking = bookings.find((b: Booking) => String(b.id) === info.event.id);
     if (booking) {
       setSelectedBooking(booking);
       setRejectReason('');
@@ -200,27 +200,21 @@ export default function AdminCalendarPage() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Calendar</h2>
-        <p className="text-sm text-gray-500 mt-0.5">
-          Drag to create bookings. Click a booking to manage it.
-        </p>
+        <h2 className="text-xl font-semibold text-gray-900">{t('calendar.title')}</h2>
+        <p className="text-sm text-gray-500 mt-0.5">{t('calendar.adminSubtitle')}</p>
       </div>
 
-      {/* Legend */}
       {configs.length > 0 && (
         <div className="flex gap-4 mb-4 flex-wrap">
           {configs.map((config: OccasionConfig) => (
             <div key={config.occasionType} className="flex items-center gap-1.5">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: config.color }}
-              />
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: config.color }} />
               <span className="text-xs text-gray-600">{config.label}</span>
             </div>
           ))}
           <div className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full bg-gray-300" />
-            <span className="text-xs text-gray-600">Pending</span>
+            <span className="text-xs text-gray-600">{t('calendar.pending')}</span>
           </div>
         </div>
       )}
@@ -248,12 +242,8 @@ export default function AdminCalendarPage() {
               title: `${b.roomName} — ${b.userName}`,
               start: b.start,
               end: b.end,
-              backgroundColor: isPending
-                ? (config?.pendingColor ?? '#d1d5db')
-                : (config?.color ?? '#111827'),
-              borderColor: isPending
-                ? (config?.pendingColor ?? '#d1d5db')
-                : (config?.color ?? '#111827'),
+              backgroundColor: isPending ? (config?.pendingColor ?? '#d1d5db') : (config?.color ?? '#111827'),
+              borderColor: isPending ? (config?.pendingColor ?? '#d1d5db') : (config?.color ?? '#111827'),
               textColor: isPending ? '#374151' : '#ffffff',
             };
           })}
@@ -268,7 +258,7 @@ export default function AdminCalendarPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
             <h3 className="text-base font-medium text-gray-900 mb-1">
-              Create booking
+              {t('calendar.createBooking')}
             </h3>
             <p className="text-sm text-gray-500 mb-5">
               {format(selectedSlot.start, 'EEEE, MMMM d yyyy')}
@@ -277,14 +267,12 @@ export default function AdminCalendarPage() {
             {conflictDates.length > 0 && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
                 <p className="text-sm font-medium text-red-700 mb-1">
-                  Conflicts found on these dates:
+                  {t('calendar.conflictsFoundOn')}
                 </p>
                 <ul className="text-xs text-red-600 space-y-0.5">
                   {conflictDates.map((d, i) => <li key={i}>• {d}</li>)}
                 </ul>
-                <p className="text-xs text-red-500 mt-2">
-                  Please adjust the time or choose a different room.
-                </p>
+                <p className="text-xs text-red-500 mt-2">{t('calendar.adjustTime')}</p>
               </div>
             )}
 
@@ -295,7 +283,7 @@ export default function AdminCalendarPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Start time
+                    {t('calendar.startTime')}
                   </label>
                   <input
                     {...register('startTime')}
@@ -305,7 +293,7 @@ export default function AdminCalendarPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    End time
+                    {t('calendar.endTime')}
                   </label>
                   <input
                     {...register('endTime')}
@@ -317,7 +305,7 @@ export default function AdminCalendarPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Occasion type
+                  {t('calendar.occasionType')}
                 </label>
                 <select
                   {...register('occasionType')}
@@ -331,16 +319,16 @@ export default function AdminCalendarPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Room
+                  {t('calendar.room')}
                 </label>
                 <select
                   {...register('roomId')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                 >
-                  <option value="">Select a room</option>
+                  <option value="">{t('calendar.selectRoom')}</option>
                   {rooms.map((room: Room) => (
                     <option key={room.id} value={room.id}>
-                      {room.name} ({room.seats} seats)
+                      {room.name} ({t('rooms.seatsLabel', { count: room.seats })})
                     </option>
                   ))}
                 </select>
@@ -351,23 +339,23 @@ export default function AdminCalendarPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Repeat
+                  {t('calendar.repeat')}
                 </label>
                 <select
                   {...register('recurrencePattern')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                 >
-                  <option value="">Does not repeat</option>
-                  <option value="0">Every week</option>
-                  <option value="1">Every 2 weeks</option>
-                  <option value="2">Every month</option>
+                  <option value="">{t('calendar.doesNotRepeat')}</option>
+                  <option value="0">{t('calendar.everyWeek')}</option>
+                  <option value="1">{t('calendar.every2Weeks')}</option>
+                  <option value="2">{t('calendar.everyMonth')}</option>
                 </select>
               </div>
 
               {recurrencePattern && recurrencePattern !== '' && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Repeat until
+                    {t('calendar.repeatUntil')}
                   </label>
                   <input
                     {...register('recurrenceEndDate')}
@@ -380,11 +368,11 @@ export default function AdminCalendarPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes (optional)
+                  {t('form.notes')}
                 </label>
                 <input
                   {...register('notes')}
-                  placeholder="What is this room being used for?"
+                  placeholder={t('form.notesPlaceholder')}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                 />
               </div>
@@ -395,14 +383,14 @@ export default function AdminCalendarPage() {
                   disabled={isSubmitting}
                   className="flex-1 bg-gray-900 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
                 >
-                  {isSubmitting ? 'Creating...' : 'Create booking'}
+                  {isSubmitting ? t('calendar.creating') : t('calendar.createBooking')}
                 </button>
                 <button
                   type="button"
                   onClick={() => { setBookingModal(false); reset(); }}
                   className="flex-1 py-2 px-4 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
                 >
-                  Cancel
+                  {t('calendar.cancel')}
                 </button>
               </div>
             </form>
@@ -416,7 +404,7 @@ export default function AdminCalendarPage() {
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
             <div className="flex items-center gap-2 mb-4">
               <h3 className="text-base font-medium text-gray-900">
-                Booking details
+                {t('calendar.bookingDetails')}
               </h3>
               <span className={`text-xs px-2 py-0.5 rounded-full ${
                 selectedBooking.status === 'Confirmed'
@@ -425,33 +413,33 @@ export default function AdminCalendarPage() {
                   ? 'bg-yellow-100 text-yellow-700'
                   : 'bg-red-100 text-red-600'
               }`}>
-                {selectedBooking.status}
+                {t(`status.${selectedBooking.status}`, { defaultValue: selectedBooking.status })}
               </span>
             </div>
 
             <div className="space-y-3 mb-6">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Room</span>
+                <span className="text-gray-500">{t('calendar.room')}</span>
                 <span className="font-medium text-gray-900">{selectedBooking.roomName}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Booked by</span>
+                <span className="text-gray-500">{t('calendar.bookedBy')}</span>
                 <span className="font-medium text-gray-900">{selectedBooking.userName}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Type</span>
+                <span className="text-gray-500">{t('calendar.type')}</span>
                 <span className="font-medium text-gray-900">
                   {OCCASION_TYPES.find(o => o.value === selectedBooking.occasionType)?.label}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Date</span>
+                <span className="text-gray-500">{t('calendar.date')}</span>
                 <span className="font-medium text-gray-900">
                   {format(new Date(selectedBooking.start), 'EEEE, MMMM d yyyy')}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Time</span>
+                <span className="text-gray-500">{t('calendar.time')}</span>
                 <span className="font-medium text-gray-900">
                   {format(new Date(selectedBooking.start), 'HH:mm')} —{' '}
                   {format(new Date(selectedBooking.end), 'HH:mm')}
@@ -459,29 +447,28 @@ export default function AdminCalendarPage() {
               </div>
               {selectedBooking.recurringGroupId && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Recurring</span>
-                  <span className="font-medium text-gray-900">Yes — cancels whole series</span>
+                  <span className="text-gray-500">{t('calendar.recurring')}</span>
+                  <span className="font-medium text-gray-900">{t('calendar.recurringCancels')}</span>
                 </div>
               )}
               {selectedBooking.notes && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Notes</span>
+                  <span className="text-gray-500">{t('calendar.notes')}</span>
                   <span className="font-medium text-gray-900">{selectedBooking.notes}</span>
                 </div>
               )}
             </div>
 
-            {/* Approve/Reject for pending */}
             {selectedBooking.status === 'Pending' && (
               <div className="mb-4 space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Rejection reason (optional)
+                    {t('calendar.rejectionReason')}
                   </label>
                   <input
                     value={rejectReason}
                     onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder="Enter reason if rejecting..."
+                    placeholder={t('calendar.rejectionPlaceholder')}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
                   />
                 </div>
@@ -490,16 +477,13 @@ export default function AdminCalendarPage() {
                     onClick={() => approveMutation.mutate(selectedBooking.id)}
                     className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
                   >
-                    Approve
+                    {t('calendar.approve')}
                   </button>
                   <button
-                    onClick={() => rejectMutation.mutate({
-                      id: selectedBooking.id,
-                      reason: rejectReason
-                    })}
+                    onClick={() => rejectMutation.mutate({ id: selectedBooking.id, reason: rejectReason })}
                     className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
                   >
-                    Reject
+                    {t('calendar.reject')}
                   </button>
                 </div>
               </div>
@@ -511,17 +495,14 @@ export default function AdminCalendarPage() {
                   onClick={() => cancelMutation.mutate(selectedBooking.id)}
                   className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
                 >
-                  Cancel booking
+                  {t('calendar.cancelBooking')}
                 </button>
               )}
               <button
-                onClick={() => {
-                  setDetailModal(false);
-                  setSelectedBooking(null);
-                }}
+                onClick={() => { setDetailModal(false); setSelectedBooking(null); }}
                 className="flex-1 py-2 px-4 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
               >
-                Close
+                {t('calendar.close')}
               </button>
             </div>
           </div>

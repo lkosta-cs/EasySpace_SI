@@ -1,15 +1,19 @@
 using System.Net;
 using System.Net.Mail;
+using Microsoft.Extensions.Localization;
+using RoomScheduler.API.Resources;
 
 namespace RoomScheduler.API.Services;
 
 public class EmailService : IEmailService
 {
     private readonly IConfiguration _config;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
-    public EmailService(IConfiguration config)
+    public EmailService(IConfiguration config, IStringLocalizer<SharedResource> localizer)
     {
         _config = config;
+        _localizer = localizer;
     }
 
     private async Task SendAsync(string to, string subject, string body)
@@ -37,12 +41,12 @@ public class EmailService : IEmailService
 
     public async Task SendPasswordResetEmailAsync(string toEmail, string resetLink)
     {
-        await SendAsync(toEmail, "Reset your EasySpace password", $"""
-            <h2>Reset your password</h2>
-            <p>Click the link below to reset your password:</p>
+        await SendAsync(toEmail, _localizer["EmailPasswordResetSubject"], $"""
+            <h2>{_localizer["EmailPasswordResetH2"]}</h2>
+            <p>{_localizer["EmailPasswordResetP"]}</p>
             <a href="{resetLink}">{resetLink}</a>
-            <p>This link expires in 1 hour.</p>
-            <p>If you did not request a password reset, ignore this email.</p>
+            <p>{_localizer["EmailPasswordResetExpiry"]}</p>
+            <p>{_localizer["EmailPasswordResetIgnore"]}</p>
             """);
     }
 
@@ -50,15 +54,15 @@ public class EmailService : IEmailService
         string toEmail, string professorName,
         string roomName, DateTime start, string occasionType)
     {
-        await SendAsync(toEmail, "New booking pending approval", $"""
-            <h2>New booking requires approval</h2>
-            <p><strong>{professorName}</strong> has requested a booking:</p>
+        await SendAsync(toEmail, _localizer["EmailPendingSubject"], $"""
+            <h2>{_localizer["EmailPendingH2"]}</h2>
+            <p><strong>{professorName}</strong> {_localizer["EmailPendingHasRequested"]}</p>
             <ul>
-                <li>Room: {roomName}</li>
-                <li>Type: {occasionType}</li>
-                <li>Date: {start:dddd, MMMM d yyyy} at {start:HH:mm}</li>
+                <li>{_localizer["EmailPendingRoom"]}: {roomName}</li>
+                <li>{_localizer["EmailPendingType"]}: {occasionType}</li>
+                <li>{_localizer["EmailPendingDate"]}: {start:dddd, MMMM d yyyy} at {start:HH:mm}</li>
             </ul>
-            <p>Please log in to approve or reject this booking.</p>
+            <p>{_localizer["EmailPendingAction"]}</p>
             """);
     }
 
@@ -66,13 +70,13 @@ public class EmailService : IEmailService
         string toEmail, string fullName,
         string roomName, DateTime start)
     {
-        await SendAsync(toEmail, "Your booking has been approved", $"""
-            <h2>Booking approved</h2>
-            <p>Hi {fullName},</p>
-            <p>Your booking has been approved:</p>
+        await SendAsync(toEmail, _localizer["EmailApprovedSubject"], $"""
+            <h2>{_localizer["EmailApprovedH2"]}</h2>
+            <p>{_localizer["EmailGreeting"]} {fullName},</p>
+            <p>{_localizer["EmailApprovedBody"]}</p>
             <ul>
-                <li>Room: {roomName}</li>
-                <li>Date: {start:dddd, MMMM d yyyy} at {start:HH:mm}</li>
+                <li>{_localizer["EmailRoom"]}: {roomName}</li>
+                <li>{_localizer["EmailDate"]}: {start:dddd, MMMM d yyyy} at {start:HH:mm}</li>
             </ul>
             """);
     }
@@ -81,15 +85,15 @@ public class EmailService : IEmailService
         string toEmail, string fullName,
         string roomName, DateTime start, string? reason)
     {
-        await SendAsync(toEmail, "Your booking has been rejected", $"""
-            <h2>Booking rejected</h2>
-            <p>Hi {fullName},</p>
-            <p>Unfortunately your booking was rejected:</p>
+        await SendAsync(toEmail, _localizer["EmailRejectedSubject"], $"""
+            <h2>{_localizer["EmailRejectedH2"]}</h2>
+            <p>{_localizer["EmailGreeting"]} {fullName},</p>
+            <p>{_localizer["EmailRejectedBody"]}</p>
             <ul>
-                <li>Room: {roomName}</li>
-                <li>Date: {start:dddd, MMMM d yyyy} at {start:HH:mm}</li>
+                <li>{_localizer["EmailRoom"]}: {roomName}</li>
+                <li>{_localizer["EmailDate"]}: {start:dddd, MMMM d yyyy} at {start:HH:mm}</li>
             </ul>
-            {(reason != null ? $"<p>Reason: {reason}</p>" : "")}
+            {(reason != null ? $"<p>{_localizer["EmailRejectedReason"]}: {reason}</p>" : "")}
             """);
     }
 
@@ -97,13 +101,13 @@ public class EmailService : IEmailService
         string toEmail, string fullName,
         string roomName, DateTime start)
     {
-        await SendAsync(toEmail, "Your booking has been cancelled", $"""
-            <h2>Booking cancelled</h2>
-            <p>Hi {fullName},</p>
-            <p>Your booking has been cancelled by an administrator:</p>
+        await SendAsync(toEmail, _localizer["EmailCancelledSubject"], $"""
+            <h2>{_localizer["EmailCancelledH2"]}</h2>
+            <p>{_localizer["EmailGreeting"]} {fullName},</p>
+            <p>{_localizer["EmailCancelledBody"]}</p>
             <ul>
-                <li>Room: {roomName}</li>
-                <li>Date: {start:dddd, MMMM d yyyy} at {start:HH:mm}</li>
+                <li>{_localizer["EmailRoom"]}: {roomName}</li>
+                <li>{_localizer["EmailDate"]}: {start:dddd, MMMM d yyyy} at {start:HH:mm}</li>
             </ul>
             """);
     }
