@@ -31,10 +31,18 @@
     "email": "Email",
     "password": "Lozinka",
     "fullName": "Ime i prezime",
+    "firstName": "Ime",
+    "lastName": "Prezime",
     "confirmPassword": "Potvrdi lozinku",
     "newPassword": "Nova lozinka",
     "notes": "Napomena (opciono)",
-    "notesPlaceholder": "Za šta se koristi ova sala?"
+    "notesPlaceholder": "Za šta se koristi ova sala?",
+    "role": "Uloga",
+    "selectRole": "Izaberite ulogu",
+    "department": "Smer",
+    "selectDepartment": "Izaberite smer",
+    "indexNumber": "Broj indeksa",
+    "title": "Titula"
   },
   "validation": {
     "emailInvalid": "Unesite važeću email adresu",
@@ -42,9 +50,13 @@
     "passwordMin": "Lozinka mora imati najmanje 8 karaktera",
     "passwordsNoMatch": "Lozinke se ne poklapaju",
     "fullNameRequired": "Ime i prezime je obavezno",
+    "firstNameRequired": "Ime je obavezno",
+    "lastNameRequired": "Prezime je obavezno",
     "roomRequired": "Izaberite salu",
     "roomNameRequired": "Naziv sale je obavezan",
-    "seatsMin": "Sala mora imati najmanje 1 mesto"
+    "seatsMin": "Sala mora imati najmanje 1 mesto",
+    "indexNumberRequired": "Broj indeksa je obavezan",
+    "departmentRequired": "Smer je obavezan"
   },
   "nav": {
     "calendar": "Kalendar",
