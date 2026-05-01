@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using RoomScheduler.API.Data;
 using RoomScheduler.API.Models;
+using RoomScheduler.API.Resources;
 using RoomScheduler.API.Services;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
@@ -18,15 +20,18 @@ public class BookingsController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IEmailService _emailService;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
     public BookingsController(
         AppDbContext db,
         IEmailService emailService,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _emailService = emailService;
         _userManager = userManager;
+        _localizer = localizer;
     }
 
     // GET /api/bookings
@@ -151,7 +156,7 @@ public class BookingsController : ControllerBase
         // Check room exists
         var room = await _db.Rooms.FindAsync(dto.RoomId);
         if (room == null || !room.IsActive)
-            return BadRequest("Room not found or inactive");
+            return BadRequest(_localizer["RoomNotFoundOrInactive"].Value);
 
         // Get occasion config
         var config = await _db.OccasionTypeConfigs
@@ -180,10 +185,10 @@ public class BookingsController : ControllerBase
             if (conflict) conflictingDates.Add(start);
         }
 
-        if (conflictingDates.Any())
+        if (conflictingDates.Count > 0)
         {
             return Conflict(new {
-                message = "Conflicts found on the following dates",
+                message = _localizer["ConflictsFoundMessage"].Value,
                 conflictingDates = conflictingDates
                     .Select(d => d.ToString("yyyy-MM-dd HH:mm"))
                     .ToList()
@@ -249,7 +254,7 @@ public class BookingsController : ControllerBase
 
         if (booking == null) return NotFound();
         if (booking.Status != BookingStatus.Pending)
-            return BadRequest("Booking is not pending");
+            return BadRequest(_localizer["BookingIsNotPending"].Value);
 
         // If recurring, approve all in the group
         if (booking.RecurringGroupId.HasValue)
@@ -292,7 +297,7 @@ public class BookingsController : ControllerBase
 
         if (booking == null) return NotFound();
         if (booking.Status != BookingStatus.Pending)
-            return BadRequest("Booking is not pending");
+            return BadRequest(_localizer["BookingIsNotPending"].Value);
 
         // If recurring, reject all in the group
         if (booking.RecurringGroupId.HasValue)

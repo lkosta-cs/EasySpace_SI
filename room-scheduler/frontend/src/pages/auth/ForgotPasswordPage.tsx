@@ -3,15 +3,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { authApi } from '../../api/auth';
-
-const schema = z.object({
-  email: z.string().email('Please enter a valid email'),
-});
-
-type FormData = z.infer<typeof schema>;
+import LanguageSelector from '../../components/LanguageSelector';
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
+
+  const schema = z.object({
+    email: z.string().email(t('validation.emailInvalid')),
+  });
+  type FormData = z.infer<typeof schema>;
+
   const {
     register,
     handleSubmit,
@@ -23,25 +26,28 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: FormData) => {
     try {
       await authApi.forgotPassword(data.email);
-      toast.success('If that email exists, a reset link has been sent');
+      toast.success(t('toast.resetLinkSent'));
     } catch {
-      toast.error('Something went wrong, please try again');
+      toast.error(t('toast.somethingWentWrong'));
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSelector />
+      </div>
+
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold text-gray-900">Forgot password</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Enter your email and we'll send you a reset link
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t('auth.forgotPasswordTitle')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('auth.forgotPasswordSubtitle')}</p>
         </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              {t('form.email')}
             </label>
             <input
               {...register('email')}
@@ -53,18 +59,20 @@ export default function ForgotPasswordPage() {
               <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
             )}
           </div>
+
           <button
             type="submit"
             disabled={isSubmitting}
             className="w-full bg-gray-900 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Sending...' : 'Send reset link'}
+            {isSubmitting ? t('auth.sending') : t('auth.sendResetLink')}
           </button>
         </form>
+
         <p className="text-center text-sm text-gray-500 mt-6">
-          Remember your password?{' '}
+          {t('auth.rememberPassword')}{' '}
           <Link to="/login" className="text-gray-900 font-medium hover:underline">
-            Sign in
+            {t('auth.signIn')}
           </Link>
         </p>
       </div>

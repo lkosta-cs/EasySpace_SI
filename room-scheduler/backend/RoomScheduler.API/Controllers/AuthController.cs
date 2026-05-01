@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using RoomScheduler.API.Models;
+using RoomScheduler.API.Resources;
 using RoomScheduler.API.Services;
 
 namespace RoomScheduler.API.Controllers;
@@ -13,17 +15,20 @@ public class AuthController : ControllerBase
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ITokenService _tokenService;
     private readonly IEmailService _emailService;
+    private readonly IStringLocalizer<SharedResource> _localizer;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         ITokenService tokenService,
-        IEmailService emailService)
+        IEmailService emailService,
+        IStringLocalizer<SharedResource> localizer)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _tokenService = tokenService;
         _emailService = emailService;
+        _localizer = localizer;
     }
 
     
@@ -33,13 +38,13 @@ public class AuthController : ControllerBase
     {
         var user = await _userManager.FindByEmailAsync(dto.Email);
         if (user == null || !user.IsActive)
-            return Unauthorized("Invalid credentials");
+            return Unauthorized(_localizer["InvalidCredentials"].Value);
 
         var result = await _signInManager
             .CheckPasswordSignInAsync(user, dto.Password, false);
 
         if (!result.Succeeded)
-            return Unauthorized("Invalid credentials");
+            return Unauthorized(_localizer["InvalidCredentials"].Value);
 
         var token = _tokenService.CreateToken(user);
 
@@ -69,7 +74,7 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
             return BadRequest(result.Errors);
 
-        return Ok("User registered successfully");
+        return Ok(_localizer["UserRegisteredSuccessfully"].Value);
     }
 
     [HttpPost("forgot-password")]
@@ -91,7 +96,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
     {
         var user = await _userManager.FindByIdAsync(dto.UserId);
-        if (user == null) return BadRequest("Invalid request");
+        if (user == null) return BadRequest(_localizer["InvalidRequest"].Value);
 
         var result = await _userManager
             .ResetPasswordAsync(user, dto.Token, dto.NewPassword);
@@ -99,7 +104,7 @@ public class AuthController : ControllerBase
         if (!result.Succeeded)
             return BadRequest(result.Errors);
 
-        return Ok("Password reset successfully");
+        return Ok(_localizer["PasswordResetSuccessfully"].Value);
     }
 }
 

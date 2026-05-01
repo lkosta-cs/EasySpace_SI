@@ -1,14 +1,17 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { toast } from 'sonner';
+import LanguageSelector from '../../components/LanguageSelector';
 
 export default function UserLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleLogout = () => {
     logout();
-    toast.success('Logged out successfully');
+    toast.success(t('toast.loggedOut'));
     navigate('/login');
   };
 
@@ -16,8 +19,8 @@ export default function UserLayout() {
     <div className="min-h-screen flex bg-gray-50">
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
         <div className="px-6 py-5 border-b border-gray-200">
-          <h1 className="text-lg font-semibold text-gray-900">EasySpace</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Room Scheduler</p>
+          <h1 className="text-lg font-semibold text-gray-900">{t('app.title')}</h1>
+          <p className="text-xs text-gray-500 mt-0.5">{t('app.subtitle')}</p>
         </div>
         <nav className="flex-1 px-4 py-4 space-y-1">
           <NavLink
@@ -31,7 +34,7 @@ export default function UserLayout() {
               }`
             }
           >
-            Calendar
+            {t('nav.calendar')}
           </NavLink>
           <NavLink
             to="/app/bookings"
@@ -43,7 +46,7 @@ export default function UserLayout() {
               }`
             }
           >
-            My Bookings
+            {t('nav.myBookings')}
           </NavLink>
         </nav>
         <div className="px-4 py-4 border-t border-gray-200">
@@ -51,11 +54,14 @@ export default function UserLayout() {
             <p className="text-sm font-medium text-gray-900">{user?.fullName}</p>
             <p className="text-xs text-gray-500">{user?.email}</p>
           </div>
+          <div className="px-3 py-2 mb-1">
+            <LanguageSelector />
+          </div>
           <button
             onClick={handleLogout}
             className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors"
           >
-            Sign out
+            {t('auth.signOut')}
           </button>
         </div>
       </aside>

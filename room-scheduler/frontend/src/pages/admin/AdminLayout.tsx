@@ -1,24 +1,27 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { useQuery } from '@tanstack/react-query';
 import { bookingsApi } from '../../api/bookings';
 import { toast } from 'sonner';
+import LanguageSelector from '../../components/LanguageSelector';
 
 export default function AdminLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const { data: pendingBookings = [] } = useQuery({
     queryKey: ['pending-bookings'],
     queryFn: bookingsApi.getPending,
-    refetchInterval: 30000, // refresh every 30 seconds
+    refetchInterval: 30000,
   });
 
   const pendingCount = pendingBookings.length;
 
   const handleLogout = () => {
     logout();
-    toast.success('Logged out successfully');
+    toast.success(t('toast.loggedOut'));
     navigate('/login');
   };
 
@@ -26,8 +29,8 @@ export default function AdminLayout() {
     <div className="min-h-screen flex bg-gray-50">
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
         <div className="px-6 py-5 border-b border-gray-200">
-          <h1 className="text-lg font-semibold text-gray-900">EasySpace</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Admin Panel</p>
+          <h1 className="text-lg font-semibold text-gray-900">{t('app.title')}</h1>
+          <p className="text-xs text-gray-500 mt-0.5">{t('app.adminPanel')}</p>
         </div>
         <nav className="flex-1 px-4 py-4 space-y-1">
           <NavLink
@@ -38,7 +41,7 @@ export default function AdminLayout() {
               }`
             }
           >
-            Users
+            {t('nav.users')}
           </NavLink>
           <NavLink
             to="/admin/rooms"
@@ -48,7 +51,7 @@ export default function AdminLayout() {
               }`
             }
           >
-            Rooms
+            {t('nav.rooms')}
           </NavLink>
           <NavLink
             to="/admin/bookings"
@@ -58,7 +61,7 @@ export default function AdminLayout() {
               }`
             }
           >
-            Bookings
+            {t('nav.bookings')}
           </NavLink>
           <NavLink
             to="/admin/pending"
@@ -68,7 +71,7 @@ export default function AdminLayout() {
               }`
             }
           >
-            <span>Pending</span>
+            <span>{t('nav.pending')}</span>
             {pendingCount > 0 && (
               <span className="bg-red-500 text-white text-xs font-medium px-1.5 py-0.5 rounded-full">
                 {pendingCount}
@@ -83,7 +86,7 @@ export default function AdminLayout() {
               }`
             }
           >
-            Occasion Settings
+            {t('nav.occasionSettings')}
           </NavLink>
           <NavLink
             to="/admin/calendar"
@@ -93,7 +96,7 @@ export default function AdminLayout() {
               }`
             }
           >
-            Calendar
+            {t('nav.calendar')}
           </NavLink>
         </nav>
         <div className="px-4 py-4 border-t border-gray-200">
@@ -101,11 +104,14 @@ export default function AdminLayout() {
             <p className="text-sm font-medium text-gray-900">{user?.fullName}</p>
             <p className="text-xs text-gray-500">{user?.email}</p>
           </div>
+          <div className="px-3 py-2 mb-1">
+            <LanguageSelector />
+          </div>
           <button
             onClick={handleLogout}
             className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors"
           >
-            Sign out
+            {t('auth.signOut')}
           </button>
         </div>
       </aside>

@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using RoomScheduler.API.Data;
 using RoomScheduler.API.Models;
 using RoomScheduler.API.Services;
+using System.Globalization;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -44,6 +47,21 @@ builder.Services.AddAuthentication(opt => {
 builder.Services.AddAuthorization(opt => {
     opt.AddPolicy("AdminOnly", p => p.RequireRole("Admin", "SuperAdmin"));
     opt.AddPolicy("SuperAdminOnly", p => p.RequireRole("SuperAdmin"));
+});
+
+// Localization — supported cultures: en (English) and sr-Latn (Serbian Latin)
+// The frontend sends Accept-Language: en or sr-Latn
+builder.Services.AddLocalization(opt => opt.ResourcesPath = "Resources");
+builder.Services.Configure<RequestLocalizationOptions>(opt =>
+{
+    var supported = new[]
+    {
+        new CultureInfo("en"),
+        new CultureInfo("sr-Latn"),
+    };
+    opt.DefaultRequestCulture = new RequestCulture("en");
+    opt.SupportedCultures = supported;
+    opt.SupportedUICultures = supported;
 });
 
 //Services registers controllers, swagger and CORS
@@ -99,6 +117,7 @@ using (var scope = app.Services.CreateScope()) {
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseCors();
+app.UseRequestLocalization();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

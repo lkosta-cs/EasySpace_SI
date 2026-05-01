@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <!-- Auth -->
+  <data name="InvalidCredentials" xml:space="preserve">
+    <value>Invalid credentials</value>
+  </data>
+  <data name="UserRegisteredSuccessfully" xml:space="preserve">
+    <value>User registered successfully</value>
+  </data>
+  <data name="InvalidRequest" xml:space="preserve">
+    <value>Invalid request</value>
+  </data>
+  <data name="PasswordResetSuccessfully" xml:space="preserve">
+    <value>Password reset successfully</value>
+  </data>
+
+  <!-- Bookings -->
+  <data name="RoomNotFoundOrInactive" xml:space="preserve">
+    <value>Room not found or inactive</value>
+  </data>
+  <data name="BookingIsNotPending" xml:space="preserve">
+    <value>Booking is not pending</value>
+  </data>
+  <data name="ConflictsFoundMessage" xml:space="preserve">
+    <value>Conflicts found on the following dates</value>
+  </data>
+
+  <!-- Users -->
+  <data name="InvalidRole" xml:space="preserve">
+    <value>Invalid role</value>
+  </data>
+
+  <!-- Email: password reset -->
+  <data name="EmailPasswordResetSubject" xml:space="preserve">
+    <value>Reset your EasySpace password</value>
+  </data>
+  <data name="EmailPasswordResetH2" xml:space="preserve">
+    <value>Reset your password</value>
+  </data>
+  <data name="EmailPasswordResetP" xml:space="preserve">
+    <value>Click the link below to reset your password:</value>
+  </data>
+  <data name="EmailPasswordResetExpiry" xml:space="preserve">
+    <value>This link expires in 1 hour.</value>
+  </data>
+  <data name="EmailPasswordResetIgnore" xml:space="preserve">
+    <value>If you did not request a password reset, ignore this email.</value>
+  </data>
+
+  <!-- Email: pending approval -->
+  <data name="EmailPendingSubject" xml:space="preserve">
+    <value>New booking pending approval</value>
+  </data>
+  <data name="EmailPendingH2" xml:space="preserve">
+    <value>New booking requires approval</value>
+  </data>
+  <data name="EmailPendingHasRequested" xml:space="preserve">
+    <value>has requested a booking:</value>
+  </data>
+  <data name="EmailPendingRoom" xml:space="preserve">
+    <value>Room</value>
+  </data>
+  <data name="EmailPendingType" xml:space="preserve">
+    <value>Type</value>
+  </data>
+  <data name="EmailPendingDate" xml:space="preserve">
+    <value>Date</value>
+  </data>
+  <data name="EmailPendingAction" xml:space="preserve">
+    <value>Please log in to approve or reject this booking.</value>
+  </data>
+
+  <!-- Email: approved -->
+  <data name="EmailApprovedSubject" xml:space="preserve">
+    <value>Your booking has been approved</value>
+  </data>
+  <data name="EmailApprovedH2" xml:space="preserve">
+    <value>Booking approved</value>
+  </data>
+  <data name="EmailApprovedBody" xml:space="preserve">
+    <value>Your booking has been approved:</value>
+  </data>
+
+  <!-- Email: rejected -->
+  <data name="EmailRejectedSubject" xml:space="preserve">
+    <value>Your booking has been rejected</value>
+  </data>
+  <data name="EmailRejectedH2" xml:space="preserve">
+    <value>Booking rejected</value>
+  </data>
+  <data name="EmailRejectedBody" xml:space="preserve">
+    <value>Unfortunately your booking was rejected:</value>
+  </data>
+  <data name="EmailRejectedReason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+
+  <!-- Email: cancelled -->
+  <data name="EmailCancelledSubject" xml:space="preserve">
+    <value>Your booking has been cancelled</value>
+  </data>
+  <data name="EmailCancelledH2" xml:space="preserve">
+    <value>Booking cancelled</value>
+  </data>
+  <data name="EmailCancelledBody" xml:space="preserve">
+    <value>Your booking has been cancelled by an administrator:</value>
+  </data>
+
+  <!-- Email: shared -->
+  <data name="EmailGreeting" xml:space="preserve">
+    <value>Hi</value>
+  </data>
+  <data name="EmailRoom" xml:space="preserve">
+    <value>Room</value>
+  </data>
+  <data name="EmailDate" xml:space="preserve">
+    <value>Date</value>
+  </data>
+</root>
