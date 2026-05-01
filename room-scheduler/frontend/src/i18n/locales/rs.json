@@ -211,5 +211,24 @@
     "0": "Kolokvijum",
     "1": "Ispit",
     "2": "Lab vežbe"
+  },
+  "role": {
+    "User": "Student",
+    "Assistant": "Asistent",
+    "Professor": "Profesor",
+    "Admin": "Administrator",
+    "SuperAdmin": "Super administrator"
+  },
+  "department": {
+    "DEPARTMENT_CSY": "Upravljački sistemi",
+    "DEPARTMENT_EL": "Elektronika",
+    "DEPARTMENT_PE": "Energetika",
+    "DEPARTMENT_MA": "Matematika",
+    "DEPARTMENT_ME": "Merenja",
+    "DEPARTMENT_MI": "Mikroelektronika",
+    "DEPARTMENT_CSC": "Računarska tehnika",
+    "DEPARTMENT_TE": "Telekomunikacije",
+    "DEPARTMENT_TEE": "Teorijska elektrotehnika",
+    "DEPARTMENT_GE": "Opšte obrazovanje"
   }
 }

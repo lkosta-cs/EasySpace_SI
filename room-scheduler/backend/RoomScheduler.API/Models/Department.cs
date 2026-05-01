@@ -1,0 +1,15 @@
+namespace RoomScheduler.API.Models;
+
+public enum Department
+{
+    DEPARTMENT_CSY,
+    DEPARTMENT_EL,
+    DEPARTMENT_PE,
+    DEPARTMENT_MA,
+    DEPARTMENT_ME,
+    DEPARTMENT_MI,
+    DEPARTMENT_CSC,
+    DEPARTMENT_TE,
+    DEPARTMENT_TEE,
+    DEPARTMENT_GE
+}

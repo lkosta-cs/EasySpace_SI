@@ -152,10 +152,10 @@ export default function UserManagementPage() {
                       }
                       className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900"
                     >
-                      <option value="User">User</option>
-                      <option value="Professor">Professor</option>
-                      <option value="Assistant">Assistant</option>
-                      <option value="Admin">Admin</option>
+                      <option value="User">{t('role.User')}</option>
+                      <option value="Professor">{t('role.Professor')}</option>
+                      <option value="Assistant">{t('role.Assistant')}</option>
+                      <option value="Admin">{t('role.Admin')}</option>
                     </select>
                   </div>
                 </div>

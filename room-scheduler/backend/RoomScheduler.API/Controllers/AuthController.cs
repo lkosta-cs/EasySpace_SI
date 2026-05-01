@@ -62,10 +62,12 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
+        var nameParts = dto.FullName.Split(' ', 2);
         var user = new ApplicationUser {
             UserName = dto.Email,
             Email = dto.Email,
-            FullName = dto.FullName,
+            FirstName = nameParts[0],
+            LastName = nameParts.Length > 1 ? nameParts[1] : string.Empty,
             IsActive = true,
             EmailConfirmed = true
         };

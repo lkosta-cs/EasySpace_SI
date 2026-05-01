@@ -23,6 +23,23 @@ public class AppDbContext : IdentityUserContext<ApplicationUser>
             .Property(u => u.Role)
             .HasConversion<string>();
 
+        builder.Entity<ApplicationUser>()
+            .Property(u => u.Department)
+            .HasConversion<string>();
+
+        // FullName is always computed by the database from FirstName and LastName.
+        // EF Core will never include it in INSERT/UPDATE statements.
+        builder.Entity<ApplicationUser>()
+            .Property(u => u.FullName)
+            .HasComputedColumnSql(
+                "TRIM(COALESCE(\"FirstName\",'') || ' ' || COALESCE(\"LastName\",''))",
+                stored: true);
+
+        // Indexes for searchable user fields
+        builder.Entity<ApplicationUser>().HasIndex(u => u.FullName);
+        builder.Entity<ApplicationUser>().HasIndex(u => u.IndexNumber);
+        builder.Entity<ApplicationUser>().HasIndex(u => u.Department);
+
         builder.Entity<Booking>()
             .HasIndex(b => new { b.RoomId, b.Start, b.End });
 
