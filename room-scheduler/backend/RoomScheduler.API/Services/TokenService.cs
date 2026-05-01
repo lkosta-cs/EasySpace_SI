@@ -15,17 +15,15 @@ public class TokenService : ITokenService
         _config = config;
     }
 
-    public string CreateToken(ApplicationUser user, IList<string> roles)
+    public string CreateToken(ApplicationUser user)
     {
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id),
             new(ClaimTypes.Email, user.Email!),
             new(ClaimTypes.Name, user.FullName),
+            new(ClaimTypes.Role, user.Role.ToString()),
         };
-
-        foreach (var role in roles)
-            claims.Add(new Claim(ClaimTypes.Role, role));
 
         var jwtSection = _config.GetSection("Jwt");
         var key = new SymmetricSecurityKey(

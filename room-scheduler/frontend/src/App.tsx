@@ -12,6 +12,8 @@ import UserManagementPage from './pages/admin/UserManagementPage';
 import RoomManagementPage from './pages/admin/RoomManagementPage';
 import BookingsPage from './pages/admin/BookingsPage';
 import AdminCalendarPage from './pages/admin/AdminCalendarPage';
+import PendingBookingsPage from './pages/admin/PendingBookingsPage';
+import OccasionSettingsPage from './pages/admin/OccasionSettingsPage';
 
 import UserLayout from './pages/user/UserLayout';
 import CalendarPage from './pages/user/CalendarPage';
@@ -28,18 +30,20 @@ export default function App() {
       <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
       {/* Admin routes */}
-      <Route element={<ProtectedRoute requiredRole="Admin" />}>
+      <Route element={<ProtectedRoute allowedRoles={['Admin', 'SuperAdmin']} />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="users" replace />} />
           <Route path="users" element={<UserManagementPage />} />
           <Route path="rooms" element={<RoomManagementPage />} />
           <Route path="bookings" element={<BookingsPage />} />
           <Route path="calendar" element={<AdminCalendarPage />} />
+          <Route path="pending" element={<PendingBookingsPage />} />
+          <Route path="occasion-settings" element={<OccasionSettingsPage />} />
         </Route>
       </Route>
 
       {/* User routes */}
-      <Route element={<ProtectedRoute requiredRole="User" />}>
+      <Route element={<ProtectedRoute allowedRoles={['User', 'Professor', 'Assistant']} />}>
         <Route path="/app" element={<UserLayout />}>
           <Route index element={<CalendarPage />} />
           <Route path="bookings" element={<MyBookingsPage />} />

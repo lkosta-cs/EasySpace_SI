@@ -27,22 +27,17 @@ public class UsersController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var users = await _userManager.Users.ToListAsync();
-        var result = new List<object>();
+        var users = await _userManager.Users
+            .Select(u => new {
+                id = u.Id,
+                email = u.Email,
+                fullName = u.FullName,
+                isActive = u.IsActive,
+                role = u.Role.ToString()
+            })
+            .ToListAsync();
 
-        foreach (var user in users)
-        {
-            var roles = await _userManager.GetRolesAsync(user);
-            result.Add(new {
-                id = user.Id,
-                email = user.Email,
-                fullName = user.FullName,
-                isActive = user.IsActive,
-                role = roles.FirstOrDefault() ?? "User"
-            });
-        }
-
-        return Ok(result);
+        return Ok(users);
     }
 
     // PUT /api/users/5/toggle-active — enable or disable a user
@@ -61,12 +56,28 @@ public class UsersController : ControllerBase
     [HttpPut("{id}/role")]
     public async Task<IActionResult> SetRole(string id, [FromBody] SetRoleDto dto)
     {
+        var callerIsSuperAdmin = User.IsInRole("SuperAdmin");
+
+        // Nobody can assign SuperAdmin via this endpoint
+        if (dto.Role == "SuperAdmin")
+            return Forbid();
+
+        // Only SuperAdmin can assign Admin role
+        if (dto.Role == "Admin" && !callerIsSuperAdmin)
+            return Forbid();
+
+        if (!Enum.TryParse<UserRole>(dto.Role, out var newRole))
+            return BadRequest("Invalid role");
+
         var user = await _userManager.FindByIdAsync(id);
         if (user == null) return NotFound();
 
-        var currentRoles = await _userManager.GetRolesAsync(user);
-        await _userManager.RemoveFromRolesAsync(user, currentRoles);
-        await _userManager.AddToRoleAsync(user, dto.Role);
+        // Prevent changing SuperAdmin's role
+        if (user.Role == UserRole.SuperAdmin)
+            return Forbid();
+
+        user.Role = newRole;
+        await _userManager.UpdateAsync(user);
 
         return Ok(new { role = dto.Role });
     }

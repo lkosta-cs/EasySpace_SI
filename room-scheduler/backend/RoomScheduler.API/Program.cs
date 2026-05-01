@@ -14,11 +14,12 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
 
 // Identity
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(opt => {
+builder.Services.AddIdentityCore<ApplicationUser>(opt => {
     opt.Password.RequireNonAlphanumeric = false;
     opt.Password.RequiredLength = 8;
 })
 .AddEntityFrameworkStores<AppDbContext>()
+.AddSignInManager()
 .AddDefaultTokenProviders();
 
 // JWT
@@ -41,7 +42,8 @@ builder.Services.AddAuthentication(opt => {
 
 // Authorization policies
 builder.Services.AddAuthorization(opt => {
-    opt.AddPolicy("AdminOnly", p => p.RequireRole("Admin"));
+    opt.AddPolicy("AdminOnly", p => p.RequireRole("Admin", "SuperAdmin"));
+    opt.AddPolicy("SuperAdminOnly", p => p.RequireRole("SuperAdmin"));
 });
 
 //Services registers controllers, swagger and CORS

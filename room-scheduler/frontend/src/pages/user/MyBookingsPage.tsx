@@ -10,6 +10,10 @@ interface Booking {
   end: string;
   notes?: string;
   status: string;
+  occasionType: number;
+  occasionTypeLabel: string;
+  recurringGroupId?: string;
+  isRecurringRoot: boolean;
 }
 
 export default function MyBookingsPage() {
@@ -59,15 +63,25 @@ export default function MyBookingsPage() {
                   <h3 className="text-sm font-medium text-gray-900">
                     {booking.roomName}
                   </h3>
-                  <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${
-                      booking.status === 'Confirmed'
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-600'
-                    }`}
-                  >
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    booking.status === 'Confirmed'
+                      ? 'bg-green-100 text-green-700'
+                      : booking.status === 'Pending'
+                      ? 'bg-yellow-100 text-yellow-700'
+                      : booking.status === 'Rejected'
+                      ? 'bg-red-100 text-red-600'
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
                     {booking.status}
                   </span>
+                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                    {booking.occasionTypeLabel}
+                  </span>
+                  {booking.recurringGroupId && (
+                    <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
+                      Recurring
+                    </span>
+                  )}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   {format(new Date(booking.start), 'EEEE, MMMM d yyyy')}
