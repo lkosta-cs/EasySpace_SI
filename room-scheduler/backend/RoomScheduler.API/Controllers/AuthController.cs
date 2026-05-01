@@ -62,14 +62,30 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
-        var nameParts = dto.FullName.Split(' ', 2);
+        // Only User, Assistant and Professor may self-register
+        if (!Enum.TryParse<UserRole>(dto.Role, out var role) ||
+            role is UserRole.Admin or UserRole.SuperAdmin)
+            return BadRequest(_localizer["InvalidRole"].Value);
+
+        Department? department = null;
+        if (!string.IsNullOrEmpty(dto.Department))
+        {
+            if (!Enum.TryParse<Department>(dto.Department, out var parsed))
+                return BadRequest(_localizer["InvalidRole"].Value);
+            department = parsed;
+        }
+
         var user = new ApplicationUser {
             UserName = dto.Email,
             Email = dto.Email,
-            FirstName = nameParts[0],
-            LastName = nameParts.Length > 1 ? nameParts[1] : string.Empty,
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
             IsActive = true,
-            EmailConfirmed = true
+            EmailConfirmed = true,
+            Role = role,
+            IndexNumber = dto.IndexNumber,
+            Department = department,
+            Title = dto.Title
         };
 
         var result = await _userManager.CreateAsync(user, dto.Password);
@@ -112,6 +128,14 @@ public class AuthController : ControllerBase
 
 // DTOs - Data Transfer Objects (the shape of data coming in from requests)
 public record LoginDto(string Email, string Password);
-public record RegisterDto(string Email, string Password, string FullName);
+public record RegisterDto(
+    string Email,
+    string Password,
+    string FirstName,
+    string LastName,
+    string Role,
+    int? IndexNumber,
+    string? Department,
+    string? Title);
 public record ForgotPasswordDto(string Email);
 public record ResetPasswordDto(string UserId, string Token, string NewPassword);

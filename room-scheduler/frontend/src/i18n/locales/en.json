@@ -31,10 +31,18 @@
     "email": "Email",
     "password": "Password",
     "fullName": "Full name",
+    "firstName": "First name",
+    "lastName": "Last name",
     "confirmPassword": "Confirm password",
     "newPassword": "New password",
     "notes": "Notes (optional)",
-    "notesPlaceholder": "What is this room being used for?"
+    "notesPlaceholder": "What is this room being used for?",
+    "role": "Role",
+    "selectRole": "Select a role",
+    "department": "Department",
+    "selectDepartment": "Select a department",
+    "indexNumber": "Index number",
+    "title": "Title"
   },
   "validation": {
     "emailInvalid": "Please enter a valid email",
@@ -42,9 +50,13 @@
     "passwordMin": "Password must be at least 8 characters",
     "passwordsNoMatch": "Passwords do not match",
     "fullNameRequired": "Full name is required",
+    "firstNameRequired": "First name is required",
+    "lastNameRequired": "Last name is required",
     "roomRequired": "Please select a room",
     "roomNameRequired": "Room name is required",
-    "seatsMin": "Must have at least 1 seat"
+    "seatsMin": "Must have at least 1 seat",
+    "indexNumberRequired": "Index number is required",
+    "departmentRequired": "Department is required"
   },
   "nav": {
     "calendar": "Calendar",
