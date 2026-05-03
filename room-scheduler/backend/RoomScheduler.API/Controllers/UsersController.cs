@@ -144,7 +144,76 @@ public class UsersController : ControllerBase
         await _db.SaveChangesAsync();
         return NoContent();
     }
+
+    // GET /api/users/{id} — get full profile for edit modal
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        return Ok(new {
+            id = user.Id,
+            email = user.Email,
+            firstName = user.FirstName,
+            lastName = user.LastName,
+            fullName = user.FullName,
+            isActive = user.IsActive,
+            role = user.Role.ToString(),
+            indexNumber = user.IndexNumber,
+            department = user.Department?.ToString(),
+            title = user.Title
+        });
+    }
+
+    // PUT /api/users/{id}/profile — update all profile fields
+    [HttpPut("{id}/profile")]
+    public async Task<IActionResult> UpdateProfile(string id, [FromBody] UpdateProfileDto dto)
+    {
+        var callerIsSuperAdmin = User.IsInRole("SuperAdmin");
+
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        if (user.Role == UserRole.SuperAdmin)
+            return Forbid();
+
+        if (dto.Role == "SuperAdmin")
+            return Forbid();
+
+        if (dto.Role == "Admin" && !callerIsSuperAdmin)
+            return Forbid();
+
+        if (!Enum.TryParse<UserRole>(dto.Role, out var newRole))
+            return BadRequest(_localizer["InvalidRole"].Value);
+
+        Department? department = null;
+        if (!string.IsNullOrEmpty(dto.Department))
+        {
+            if (!Enum.TryParse<Department>(dto.Department, out var parsed))
+                return BadRequest("Invalid department.");
+            department = parsed;
+        }
+
+        user.FirstName = dto.FirstName;
+        user.LastName = dto.LastName;
+        user.IndexNumber = dto.IndexNumber;
+        user.Department = department;
+        user.Title = dto.Title;
+        user.Role = newRole;
+        user.Email = dto.Email;
+        user.UserName = dto.Email;
+        user.NormalizedEmail = dto.Email.ToUpperInvariant();
+        user.NormalizedUserName = dto.Email.ToUpperInvariant();
+
+        var result = await _userManager.UpdateAsync(user);
+        if (!result.Succeeded)
+            return BadRequest(result.Errors);
+
+        return Ok();
+    }
 }
 
 public record SetRoleDto(string Role);
 public record SetPermissionDto(int RoomId, PermissionLevel Level);
+public record UpdateProfileDto(string FirstName, string LastName, string Email, string Role, int? IndexNumber, string? Department, string? Title);

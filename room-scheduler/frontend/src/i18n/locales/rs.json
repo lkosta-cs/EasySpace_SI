@@ -65,7 +65,17 @@
     "rooms": "Sale",
     "bookings": "Rezervacije",
     "pending": "Na čekanju",
-    "occasionSettings": "Podešavanja termina"
+    "occasionSettings": "Podešavanja termina",
+    "myProfile": "Moj profil"
+  },
+  "profile": {
+    "myProfile": "Moj profil",
+    "editUser": "Uredi korisnika",
+    "password": "Lozinka",
+    "sendResetLink": "Pošalji link za resetovanje lozinke",
+    "resetLinkSent": "Link je poslat",
+    "saveChanges": "Sačuvaj izmene",
+    "saving": "Čuvanje..."
   },
   "toast": {
     "welcomeBack": "Dobrodošli, {{name}}!",
@@ -103,7 +113,9 @@
     "roomDeactivated": "Sala je deaktivirana",
     "roomDeactivateFailed": "Deaktiviranje sale nije uspelo",
     "settingsSaved": "Podešavanja su sačuvana",
-    "settingsFailed": "Čuvanje podešavanja nije uspelo"
+    "settingsFailed": "Čuvanje podešavanja nije uspelo",
+    "profileUpdated": "Profil je uspešno ažuriran",
+    "profileUpdateFailed": "Ažuriranje profila nije uspelo"
   },
   "calendar": {
     "title": "Kalendar",
@@ -167,6 +179,7 @@
     "inactive": "Neaktivan",
     "deactivate": "Deaktiviraj",
     "activate": "Aktiviraj",
+    "edit": "Uredi",
     "roomPermissions": "Dozvole za sale",
     "view": "Pregled",
     "book": "Rezerviši"

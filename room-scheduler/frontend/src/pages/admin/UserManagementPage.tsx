@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { usersApi } from '../../api/users';
 import { roomsApi } from '../../api/rooms';
+import { useAuthStore } from '../../stores/authStore';
+import EditUserModal from '../../components/EditUserModal';
 
 interface User {
   id: string;
@@ -27,8 +29,12 @@ interface Room {
 export default function UserManagementPage() {
   const qc = useQueryClient();
   const { t } = useTranslation();
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const { user: currentUser } = useAuthStore();
+
+  const [selectedUser] = useState<User | null>(null);
+  // const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
+  const [editUserId, setEditUserId] = useState<string | null>(null);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['users'],
@@ -47,16 +53,6 @@ export default function UserManagementPage() {
       toast.success(t('toast.userStatusUpdated'));
     },
     onError: () => toast.error(t('toast.userStatusFailed')),
-  });
-
-  const setRoleMutation = useMutation({
-    mutationFn: ({ id, role }: { id: string; role: string }) =>
-      usersApi.setRole(id, role),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['users'] });
-      toast.success(t('toast.roleUpdated'));
-    },
-    onError: () => toast.error(t('toast.roleFailed')),
   });
 
   const setPermissionMutation = useMutation({
@@ -85,16 +81,18 @@ export default function UserManagementPage() {
     onError: () => toast.error(t('toast.permissionRemoveFailed')),
   });
 
-  const openPermissions = async (user: User) => {
-    setSelectedUser(user);
-    const perms = await usersApi.getPermissions(user.id);
-    setPermissions(perms);
-  };
+  // const openPermissions = async (user: User) => {
+  //   setSelectedUser(user);
+  //   const perms = await usersApi.getPermissions(user.id);
+  //   setPermissions(perms);
+  // };
 
   const getPermissionLevel = (roomId: number): string | null => {
     const p = permissions.find((p) => p.roomId === roomId);
     return p ? p.level : null;
   };
+
+  const isSuperAdmin = currentUser?.role === 'SuperAdmin';
 
   return (
     <div>
@@ -108,7 +106,7 @@ export default function UserManagementPage() {
           {isLoading ? (
             <p className="text-sm text-gray-500">{t('users.loading')}</p>
           ) : (
-            users.map((user: User) => (
+            users.filter((u: User) => u.id !== currentUser?.id).map((user: User) => (
               <div
                 key={user.id}
                 className={`bg-white border rounded-2xl p-5 cursor-pointer transition-colors ${
@@ -116,12 +114,15 @@ export default function UserManagementPage() {
                     ? 'border-gray-900'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
-                onClick={() => openPermissions(user)}
+                // onClick={() => openPermissions(user)}
               >
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+                      <span className="text-xs text-gray-400">
+                        {t(`role.${user.role}`, { defaultValue: user.role })}
+                      </span>
                       {!user.isActive && (
                         <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
                           {t('users.inactive')}
@@ -144,19 +145,15 @@ export default function UserManagementPage() {
                     >
                       {user.isActive ? t('users.deactivate') : t('users.activate')}
                     </button>
-                    <select
-                      onClick={(e) => e.stopPropagation()}
-                      defaultValue={user.role ?? 'Professor'}
-                      onChange={(e) =>
-                        setRoleMutation.mutate({ id: user.id, role: e.target.value })
-                      }
-                      className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditUserId(user.id);
+                      }}
+                      className="text-xs px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 transition-colors"
                     >
-                      <option value="User">{t('role.User')}</option>
-                      <option value="Professor">{t('role.Professor')}</option>
-                      <option value="Assistant">{t('role.Assistant')}</option>
-                      <option value="Admin">{t('role.Admin')}</option>
-                    </select>
+                      {t('users.edit')}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -216,6 +213,16 @@ export default function UserManagementPage() {
           </div>
         )}
       </div>
+
+      {editUserId && (
+        <EditUserModal
+          userId={editUserId}
+          isSelf={false}
+          canEditRole={true}
+          isSuperAdmin={isSuperAdmin}
+          onClose={() => setEditUserId(null)}
+        />
+      )}
     </div>
   );
 }
