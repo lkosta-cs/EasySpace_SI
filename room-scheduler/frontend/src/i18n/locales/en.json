@@ -65,7 +65,17 @@
     "rooms": "Rooms",
     "bookings": "Bookings",
     "pending": "Pending",
-    "occasionSettings": "Occasion Settings"
+    "occasionSettings": "Occasion Settings",
+    "myProfile": "My profile"
+  },
+  "profile": {
+    "myProfile": "My profile",
+    "editUser": "Edit user",
+    "password": "Password",
+    "sendResetLink": "Send password reset link",
+    "resetLinkSent": "Reset link sent",
+    "saveChanges": "Save changes",
+    "saving": "Saving..."
   },
   "toast": {
     "welcomeBack": "Welcome back, {{name}}!",
@@ -103,7 +113,9 @@
     "roomDeactivated": "Room deactivated",
     "roomDeactivateFailed": "Failed to deactivate room",
     "settingsSaved": "Settings saved",
-    "settingsFailed": "Failed to save settings"
+    "settingsFailed": "Failed to save settings",
+    "profileUpdated": "Profile updated successfully",
+    "profileUpdateFailed": "Failed to update profile"
   },
   "calendar": {
     "title": "Calendar",
@@ -167,6 +179,7 @@
     "inactive": "Inactive",
     "deactivate": "Deactivate",
     "activate": "Activate",
+    "edit": "Edit",
     "roomPermissions": "Room permissions",
     "view": "View",
     "book": "Book"

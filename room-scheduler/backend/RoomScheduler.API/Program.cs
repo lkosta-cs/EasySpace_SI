@@ -64,7 +64,7 @@ builder.Services.Configure<RequestLocalizationOptions>(opt =>
     opt.SupportedUICultures = supported;
 });
 
-//Services registers controllers, swagger and CORS
+//Services, registers, controllers, swagger and CORS
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
@@ -74,9 +74,9 @@ builder.Services.AddControllers()
             System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
 
-builder.Services.AddEndpointsApiExplorer();
 
 //SWAGGER
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(opt => {
     opt.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme {
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,

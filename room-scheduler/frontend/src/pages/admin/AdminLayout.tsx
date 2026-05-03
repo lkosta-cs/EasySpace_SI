@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
@@ -5,11 +6,13 @@ import { useQuery } from '@tanstack/react-query';
 import { bookingsApi } from '../../api/bookings';
 import { toast } from 'sonner';
 import LanguageSelector from '../../components/LanguageSelector';
+import EditUserModal from '../../components/EditUserModal';
 
 export default function AdminLayout() {
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [showProfile, setShowProfile] = useState(false);
 
   const { data: pendingBookings = [] } = useQuery({
     queryKey: ['pending-bookings'],
@@ -108,6 +111,12 @@ export default function AdminLayout() {
             <LanguageSelector />
           </div>
           <button
+            onClick={() => setShowProfile(true)}
+            className="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            {t('nav.myProfile')}
+          </button>
+          <button
             onClick={handleLogout}
             className="w-full text-left px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors"
           >
@@ -118,6 +127,15 @@ export default function AdminLayout() {
       <main className="flex-1 p-8 overflow-auto">
         <Outlet />
       </main>
+      {showProfile && user && (
+        <EditUserModal
+          userId={user.id}
+          isSelf={true}
+          canEditRole={false}
+          isSuperAdmin={false}
+          onClose={() => setShowProfile(false)}
+        />
+      )}
     </div>
   );
 }
