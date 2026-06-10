@@ -12,7 +12,6 @@ import UserManagementPage from './pages/admin/UserManagementPage';
 import RoomManagementPage from './pages/admin/RoomManagementPage';
 import BookingsPage from './pages/admin/BookingsPage';
 import AdminCalendarPage from './pages/admin/AdminCalendarPage';
-import PendingBookingsPage from './pages/admin/PendingBookingsPage';
 import OccasionSettingsPage from './pages/admin/OccasionSettingsPage';
 
 import UserLayout from './pages/user/UserLayout';
@@ -37,7 +36,6 @@ export default function App() {
           <Route path="rooms" element={<RoomManagementPage />} />
           <Route path="bookings" element={<BookingsPage />} />
           <Route path="calendar" element={<AdminCalendarPage />} />
-          <Route path="pending" element={<PendingBookingsPage />} />
           <Route path="occasion-settings" element={<OccasionSettingsPage />} />
         </Route>
       </Route>

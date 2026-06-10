@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
-import { useQuery } from '@tanstack/react-query';
-import { bookingsApi } from '../../api/bookings';
 import { toast } from 'sonner';
 import LanguageSelector from '../../components/LanguageSelector';
 import EditUserModal from '../../components/EditUserModal';
@@ -13,14 +11,6 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [showProfile, setShowProfile] = useState(false);
-
-  const { data: pendingBookings = [] } = useQuery({
-    queryKey: ['pending-bookings'],
-    queryFn: bookingsApi.getPending,
-    refetchInterval: 30000,
-  });
-
-  const pendingCount = pendingBookings.length;
 
   const handleLogout = () => {
     logout();
@@ -65,21 +55,6 @@ export default function AdminLayout() {
             }
           >
             {t('nav.bookings')}
-          </NavLink>
-          <NavLink
-            to="/admin/pending"
-            className={({ isActive }) =>
-              `flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                isActive ? 'bg-gray-900 text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`
-            }
-          >
-            <span>{t('nav.pending')}</span>
-            {pendingCount > 0 && (
-              <span className="bg-red-500 text-white text-xs font-medium px-1.5 py-0.5 rounded-full">
-                {pendingCount}
-              </span>
-            )}
           </NavLink>
           <NavLink
             to="/admin/occasion-settings"

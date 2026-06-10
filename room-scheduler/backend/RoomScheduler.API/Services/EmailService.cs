@@ -50,53 +50,6 @@ public class EmailService : IEmailService
             """);
     }
 
-    public async Task SendPendingApprovalEmailAsync(
-        string toEmail, string professorName,
-        string roomName, DateTime start, string occasionType)
-    {
-        await SendAsync(toEmail, _localizer["EmailPendingSubject"], $"""
-            <h2>{_localizer["EmailPendingH2"]}</h2>
-            <p><strong>{professorName}</strong> {_localizer["EmailPendingHasRequested"]}</p>
-            <ul>
-                <li>{_localizer["EmailPendingRoom"]}: {roomName}</li>
-                <li>{_localizer["EmailPendingType"]}: {occasionType}</li>
-                <li>{_localizer["EmailPendingDate"]}: {start:dddd, MMMM d yyyy} at {start:HH:mm}</li>
-            </ul>
-            <p>{_localizer["EmailPendingAction"]}</p>
-            """);
-    }
-
-    public async Task SendBookingApprovedEmailAsync(
-        string toEmail, string fullName,
-        string roomName, DateTime start)
-    {
-        await SendAsync(toEmail, _localizer["EmailApprovedSubject"], $"""
-            <h2>{_localizer["EmailApprovedH2"]}</h2>
-            <p>{_localizer["EmailGreeting"]} {fullName},</p>
-            <p>{_localizer["EmailApprovedBody"]}</p>
-            <ul>
-                <li>{_localizer["EmailRoom"]}: {roomName}</li>
-                <li>{_localizer["EmailDate"]}: {start:dddd, MMMM d yyyy} at {start:HH:mm}</li>
-            </ul>
-            """);
-    }
-
-    public async Task SendBookingRejectedEmailAsync(
-        string toEmail, string fullName,
-        string roomName, DateTime start, string? reason)
-    {
-        await SendAsync(toEmail, _localizer["EmailRejectedSubject"], $"""
-            <h2>{_localizer["EmailRejectedH2"]}</h2>
-            <p>{_localizer["EmailGreeting"]} {fullName},</p>
-            <p>{_localizer["EmailRejectedBody"]}</p>
-            <ul>
-                <li>{_localizer["EmailRoom"]}: {roomName}</li>
-                <li>{_localizer["EmailDate"]}: {start:dddd, MMMM d yyyy} at {start:HH:mm}</li>
-            </ul>
-            {(reason != null ? $"<p>{_localizer["EmailRejectedReason"]}: {reason}</p>" : "")}
-            """);
-    }
-
     public async Task SendBookingCancelledEmailAsync(
         string toEmail, string fullName,
         string roomName, DateTime start)

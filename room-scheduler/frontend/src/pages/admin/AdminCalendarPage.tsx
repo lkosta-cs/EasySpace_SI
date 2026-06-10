@@ -38,8 +38,6 @@ interface OccasionConfig {
   occasionType: number;
   label: string;
   color: string;
-  pendingColor: string;
-  requiresApproval: boolean;
 }
 
 export default function AdminCalendarPage() {
@@ -50,7 +48,6 @@ export default function AdminCalendarPage() {
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [conflictDates, setConflictDates] = useState<string[]>([]);
-  const [rejectReason, setRejectReason] = useState('');
 
   const OCCASION_TYPES = [
     { value: 0, label: t('occasionType.0') },
@@ -150,32 +147,6 @@ export default function AdminCalendarPage() {
     onError: () => toast.error(t('toast.cancelFailed')),
   });
 
-  const approveMutation = useMutation({
-    mutationFn: (id: number) => bookingsApi.approve(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['all-bookings'] });
-      qc.invalidateQueries({ queryKey: ['pending-bookings'] });
-      toast.success(t('toast.bookingApproved'));
-      setDetailModal(false);
-      setSelectedBooking(null);
-    },
-    onError: () => toast.error(t('toast.approveFailed')),
-  });
-
-  const rejectMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
-      bookingsApi.reject(id, reason),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['all-bookings'] });
-      qc.invalidateQueries({ queryKey: ['pending-bookings'] });
-      toast.success(t('toast.bookingRejected'));
-      setDetailModal(false);
-      setSelectedBooking(null);
-      setRejectReason('');
-    },
-    onError: () => toast.error(t('toast.rejectFailed')),
-  });
-
   const onSelect = (info: { start: Date; end: Date }) => {
     setSelectedSlot({ start: info.start, end: info.end });
     setConflictDates([]);
@@ -192,7 +163,6 @@ export default function AdminCalendarPage() {
     const booking = bookings.find((b: Booking) => String(b.id) === info.event.id);
     if (booking) {
       setSelectedBooking(booking);
-      setRejectReason('');
       setDetailModal(true);
     }
   };
@@ -212,10 +182,6 @@ export default function AdminCalendarPage() {
               <span className="text-xs text-gray-600">{config.label}</span>
             </div>
           ))}
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-gray-300" />
-            <span className="text-xs text-gray-600">{t('calendar.pending')}</span>
-          </div>
         </div>
       )}
 
@@ -236,18 +202,18 @@ export default function AdminCalendarPage() {
           }}
           events={bookings.map((b: Booking) => {
             const config = getConfig(b.occasionType);
-            const isPending = b.status === 'Pending';
             return {
               id: String(b.id),
               title: `${b.roomName} — ${b.userName}`,
               start: b.start,
               end: b.end,
-              backgroundColor: isPending ? (config?.pendingColor ?? '#d1d5db') : (config?.color ?? '#111827'),
-              borderColor: isPending ? (config?.pendingColor ?? '#d1d5db') : (config?.color ?? '#111827'),
-              textColor: isPending ? '#374151' : '#ffffff',
+              backgroundColor: config?.color ?? '#111827',
+              borderColor: config?.color ?? '#111827',
+              textColor: '#ffffff',
             };
           })}
           select={onSelect}
+          selectAllow={(selectInfo) => selectInfo.start >= new Date()}
           eventClick={onEventClick}
           height="auto"
         />
@@ -409,8 +375,6 @@ export default function AdminCalendarPage() {
               <span className={`text-xs px-2 py-0.5 rounded-full ${
                 selectedBooking.status === 'Confirmed'
                   ? 'bg-green-100 text-green-700'
-                  : selectedBooking.status === 'Pending'
-                  ? 'bg-yellow-100 text-yellow-700'
                   : 'bg-red-100 text-red-600'
               }`}>
                 {t(`status.${selectedBooking.status}`, { defaultValue: selectedBooking.status })}
@@ -458,36 +422,6 @@ export default function AdminCalendarPage() {
                 </div>
               )}
             </div>
-
-            {selectedBooking.status === 'Pending' && (
-              <div className="mb-4 space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('calendar.rejectionReason')}
-                  </label>
-                  <input
-                    value={rejectReason}
-                    onChange={(e) => setRejectReason(e.target.value)}
-                    placeholder={t('calendar.rejectionPlaceholder')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => approveMutation.mutate(selectedBooking.id)}
-                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-                  >
-                    {t('calendar.approve')}
-                  </button>
-                  <button
-                    onClick={() => rejectMutation.mutate({ id: selectedBooking.id, reason: rejectReason })}
-                    className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
-                  >
-                    {t('calendar.reject')}
-                  </button>
-                </div>
-              </div>
-            )}
 
             <div className="flex gap-3">
               {selectedBooking.status === 'Confirmed' && (

@@ -9,8 +9,6 @@ interface OccasionConfig {
   occasionType: number;
   label: string;
   color: string;
-  pendingColor: string;
-  requiresApproval: boolean;
 }
 
 export default function OccasionSettingsPage() {
@@ -49,11 +47,7 @@ export default function OccasionSettingsPage() {
     const current = getEdit(config);
     updateMutation.mutate({
       type: config.occasionType,
-      data: {
-        color: current.color,
-        pendingColor: current.pendingColor,
-        requiresApproval: current.requiresApproval,
-      }
+      data: { color: current.color }
     });
   };
 
@@ -83,63 +77,27 @@ export default function OccasionSettingsPage() {
                   <h3 className="text-base font-medium text-gray-900">{config.label}</h3>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('occasionSettings.confirmedColor')}
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={current.color}
-                        onChange={(e) => setEdit(config.occasionType, 'color', e.target.value)}
-                        className="w-10 h-10 rounded border border-gray-300 cursor-pointer p-0.5"
-                      />
-                      <input
-                        type="text"
-                        value={current.color}
-                        onChange={(e) => setEdit(config.occasionType, 'color', e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      {t('occasionSettings.pendingColor')}
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="color"
-                        value={current.pendingColor}
-                        onChange={(e) => setEdit(config.occasionType, 'pendingColor', e.target.value)}
-                        className="w-10 h-10 rounded border border-gray-300 cursor-pointer p-0.5"
-                      />
-                      <input
-                        type="text"
-                        value={current.pendingColor}
-                        onChange={(e) => setEdit(config.occasionType, 'pendingColor', e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900"
-                      />
-                    </div>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {t('occasionSettings.confirmedColor')}
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={current.color}
+                      onChange={(e) => setEdit(config.occasionType, 'color', e.target.value)}
+                      className="w-10 h-10 rounded border border-gray-300 cursor-pointer p-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={current.color}
+                      onChange={(e) => setEdit(config.occasionType, 'color', e.target.value)}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-gray-900"
+                    />
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={current.requiresApproval}
-                      onChange={(e) =>
-                        setEdit(config.occasionType, 'requiresApproval', e.target.checked)
-                      }
-                      className="w-4 h-4 rounded border-gray-300"
-                    />
-                    <span className="text-sm text-gray-700">
-                      {t('occasionSettings.requiresApproval')}
-                    </span>
-                  </label>
-
+                <div className="flex justify-end">
                   <button
                     onClick={() => save(config)}
                     disabled={updateMutation.isPending}

@@ -34,23 +34,17 @@ public static class DbSeeder
                 new OccasionTypeConfig {
                     OccasionType = OccasionType.Kolokvijum,
                     Label = "Kolokvijum",
-                    Color = "#2563eb",
-                    PendingColor = "#93c5fd",
-                    RequiresApproval = false
+                    Color = "#2563eb"
                 },
                 new OccasionTypeConfig {
                     OccasionType = OccasionType.Ispit,
                     Label = "Ispit",
-                    Color = "#dc2626",
-                    PendingColor = "#fca5a5",
-                    RequiresApproval = true
+                    Color = "#dc2626"
                 },
                 new OccasionTypeConfig {
                     OccasionType = OccasionType.LabVezbe,
                     Label = "Lab vežbe",
-                    Color = "#16a34a",
-                    PendingColor = "#86efac",
-                    RequiresApproval = false
+                    Color = "#16a34a"
                 }
             );
             await db.SaveChangesAsync();

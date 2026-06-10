@@ -7,7 +7,6 @@ using RoomScheduler.API.Models;
 using RoomScheduler.API.Resources;
 using RoomScheduler.API.Services;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Identity;
 
 
 namespace RoomScheduler.API.Controllers;
@@ -19,18 +18,15 @@ public class BookingsController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IEmailService _emailService;
-    private readonly UserManager<ApplicationUser> _userManager;
     private readonly IStringLocalizer<SharedResource> _localizer;
 
     public BookingsController(
         AppDbContext db,
         IEmailService emailService,
-        UserManager<ApplicationUser> userManager,
         IStringLocalizer<SharedResource> localizer)
     {
         _db = db;
         _emailService = emailService;
-        _userManager = userManager;
         _localizer = localizer;
     }
 
@@ -93,36 +89,6 @@ public class BookingsController : ControllerBase
         return Ok(bookings);
     }
 
-    // GET /api/bookings/pending
-    [HttpGet("pending")]
-    [Authorize(Policy = "AdminOnly")]
-    public async Task<IActionResult> GetPending()
-    {
-        var bookings = await _db.Bookings
-            .Include(b => b.Room)
-            .Include(b => b.User)
-            .Where(b => b.Status == BookingStatus.Pending)
-            .OrderBy(b => b.Start)
-            .Select(b => new {
-                id = b.Id,
-                roomId = b.RoomId,
-                roomName = b.Room.Name,
-                userId = b.UserId,
-                userName = b.User.FullName,
-                userEmail = b.User.Email,
-                start = b.Start,
-                end = b.End,
-                notes = b.Notes,
-                occasionType = b.OccasionType,
-                occasionTypeLabel = b.OccasionType.ToString(),
-                recurringGroupId = b.RecurringGroupId,
-                isRecurringRoot = b.IsRecurringRoot
-            })
-            .ToListAsync();
-
-        return Ok(bookings);
-    }
-
     // POST /api/bookings
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateBookingDto dto)
@@ -158,14 +124,7 @@ public class BookingsController : ControllerBase
         if (room == null || !room.IsActive)
             return BadRequest(_localizer["RoomNotFoundOrInactive"].Value);
 
-        // Get occasion config
-        var config = await _db.OccasionTypeConfigs
-            .FirstOrDefaultAsync(c => c.OccasionType == dto.OccasionType);
-
-        var requiresApproval = config?.RequiresApproval ?? false;
-        var status = (requiresApproval && !isAdmin)
-            ? BookingStatus.Pending
-            : BookingStatus.Confirmed;
+        const BookingStatus status = BookingStatus.Confirmed;
 
         // Generate all dates for the series
         var dates = GenerateDates(dto.Start, dto.End,
@@ -214,119 +173,11 @@ public class BookingsController : ControllerBase
         _db.Bookings.AddRange(bookings);
         await _db.SaveChangesAsync();
 
-        // Send notification emails if pending
-        if (status == BookingStatus.Pending)
-        {
-            var allAdmins = await _db.Users
-                .Where(u => u.Role == UserRole.Admin || u.Role == UserRole.SuperAdmin)
-                .ToListAsync();
-
-            var user = await _userManager.FindByIdAsync(currentUserId!);
-            foreach (var admin in allAdmins)
-            {
-                if (admin.Email != null)
-                    await _emailService.SendPendingApprovalEmailAsync(
-                        admin.Email,
-                        user?.FullName ?? "Unknown",
-                        room.Name,
-                        dto.Start,
-                        dto.OccasionType.ToString()
-                    );
-            }
-        }
-
         return Ok(new {
             count = bookings.Count,
             status = status.ToString(),
             recurringGroupId = groupId
         });
-    }
-
-    // PUT /api/bookings/{id}/approve
-    [HttpPut("{id}/approve")]
-    [Authorize(Policy = "AdminOnly")]
-    public async Task<IActionResult> Approve(int id)
-    {
-        var booking = await _db.Bookings
-            .Include(b => b.User)
-            .Include(b => b.Room)
-            .FirstOrDefaultAsync(b => b.Id == id);
-
-        if (booking == null) return NotFound();
-        if (booking.Status != BookingStatus.Pending)
-            return BadRequest(_localizer["BookingIsNotPending"].Value);
-
-        // If recurring, approve all in the group
-        if (booking.RecurringGroupId.HasValue)
-        {
-            var group = await _db.Bookings
-                .Where(b => b.RecurringGroupId == booking.RecurringGroupId &&
-                           b.Status == BookingStatus.Pending)
-                .ToListAsync();
-            foreach (var b in group)
-                b.Status = BookingStatus.Confirmed;
-        }
-        else
-        {
-            booking.Status = BookingStatus.Confirmed;
-        }
-
-        await _db.SaveChangesAsync();
-
-        // Notify the user
-        if (booking.User.Email != null)
-            await _emailService.SendBookingApprovedEmailAsync(
-                booking.User.Email,
-                booking.User.FullName,
-                booking.Room.Name,
-                booking.Start
-            );
-
-        return Ok();
-    }
-
-    // PUT /api/bookings/{id}/reject
-    [HttpPut("{id}/reject")]
-    [Authorize(Policy = "AdminOnly")]
-    public async Task<IActionResult> Reject(int id, [FromBody] RejectBookingDto dto)
-    {
-        var booking = await _db.Bookings
-            .Include(b => b.User)
-            .Include(b => b.Room)
-            .FirstOrDefaultAsync(b => b.Id == id);
-
-        if (booking == null) return NotFound();
-        if (booking.Status != BookingStatus.Pending)
-            return BadRequest(_localizer["BookingIsNotPending"].Value);
-
-        // If recurring, reject all in the group
-        if (booking.RecurringGroupId.HasValue)
-        {
-            var group = await _db.Bookings
-                .Where(b => b.RecurringGroupId == booking.RecurringGroupId &&
-                           b.Status == BookingStatus.Pending)
-                .ToListAsync();
-            foreach (var b in group)
-                b.Status = BookingStatus.Rejected;
-        }
-        else
-        {
-            booking.Status = BookingStatus.Rejected;
-        }
-
-        await _db.SaveChangesAsync();
-
-        // Notify the user
-        if (booking.User.Email != null)
-            await _emailService.SendBookingRejectedEmailAsync(
-                booking.User.Email,
-                booking.User.FullName,
-                booking.Room.Name,
-                booking.Start,
-                dto.Reason
-            );
-
-        return Ok();
     }
 
     // DELETE /api/bookings/{id}
@@ -417,5 +268,3 @@ public record CreateBookingDto(
     string? Notes,
     RecurrencePattern? RecurrencePattern,
     DateTime? RecurrenceEndDate);
-
-public record RejectBookingDto(string? Reason);

@@ -260,13 +260,6 @@ namespace RoomScheduler.API.Migrations
                     b.Property<int>("OccasionType")
                         .HasColumnType("integer");
 
-                    b.Property<string>("PendingColor")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("RequiresApproval")
-                        .HasColumnType("boolean");
-
                     b.HasKey("Id");
 
                     b.HasIndex("OccasionType")
