@@ -27,9 +27,7 @@ public class OccasionConfigController : ControllerBase
                 id = c.Id,
                 occasionType = c.OccasionType,
                 label = c.Label,
-                color = c.Color,
-                pendingColor = c.PendingColor,
-                requiresApproval = c.RequiresApproval
+                color = c.Color
             })
             .ToListAsync();
 
@@ -47,15 +45,10 @@ public class OccasionConfigController : ControllerBase
         if (config == null) return NotFound();
 
         config.Color = dto.Color;
-        config.PendingColor = dto.PendingColor;
-        config.RequiresApproval = dto.RequiresApproval;
 
         await _db.SaveChangesAsync();
         return Ok(config);
     }
 }
 
-public record OccasionConfigDto(
-    string Color,
-    string PendingColor,
-    bool RequiresApproval);
+public record OccasionConfigDto(string Color);

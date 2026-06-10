@@ -22,10 +22,9 @@ public class Booking
 
 public enum BookingStatus
 {
-    Confirmed,
-    Pending,
-    Cancelled,
-    Rejected
+    Confirmed = 0,
+    Cancelled = 2,
+    Rejected = 3
 }
 
 public enum OccasionType

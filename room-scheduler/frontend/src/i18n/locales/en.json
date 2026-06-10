@@ -64,7 +64,6 @@
     "users": "Users",
     "rooms": "Rooms",
     "bookings": "Bookings",
-    "pending": "Pending",
     "occasionSettings": "Occasion Settings",
     "myProfile": "My profile"
   },
@@ -87,17 +86,12 @@
     "passwordReset": "Password reset successfully",
     "resetLinkInvalid": "Reset link is invalid or has expired",
     "loggedOut": "Logged out successfully",
-    "bookingPending": "Booking submitted and awaiting approval",
     "bookingCreated": "Booking created successfully",
     "bookingsCreated": "{{count}} bookings created successfully",
     "conflictsFound": "Conflicts found — please choose a different time",
     "bookingFailed": "Failed to create booking",
     "bookingCancelled": "Booking cancelled",
     "cancelFailed": "Failed to cancel booking",
-    "bookingApproved": "Booking approved",
-    "approveFailed": "Failed to approve booking",
-    "bookingRejected": "Booking rejected",
-    "rejectFailed": "Failed to reject booking",
     "userStatusUpdated": "User status updated",
     "userStatusFailed": "Failed to update user status",
     "roleUpdated": "Role updated",
@@ -121,8 +115,6 @@
     "title": "Calendar",
     "subtitle": "Click and drag to book a room",
     "adminSubtitle": "Drag to create bookings. Click a booking to manage it.",
-    "pending": "Pending",
-    "requiresApproval": "(requires approval)",
     "bookRoom": "Book a room",
     "createBooking": "Create booking",
     "bookingDetails": "Booking details",
@@ -150,10 +142,6 @@
     "recurring": "Recurring",
     "recurringCancels": "Yes — cancels whole series",
     "notes": "Notes",
-    "rejectionReason": "Rejection reason (optional)",
-    "rejectionPlaceholder": "Enter reason if rejecting...",
-    "approve": "Approve",
-    "reject": "Reject",
     "cancelBooking": "Cancel booking",
     "close": "Close"
   },
@@ -168,7 +156,6 @@
   },
   "status": {
     "Confirmed": "Confirmed",
-    "Pending": "Pending",
     "Rejected": "Rejected",
     "Cancelled": "Cancelled"
   },
@@ -211,25 +198,11 @@
     "noBookings": "No bookings yet.",
     "cancel": "Cancel"
   },
-  "pending": {
-    "title": "Pending Bookings",
-    "subtitle": "Bookings awaiting your approval",
-    "loading": "Loading...",
-    "noPending": "No pending bookings.",
-    "recurring": "Recurring — {{count}} sessions",
-    "rejectionReason": "Rejection reason (optional)",
-    "approveAll": "Approve all {{count}}",
-    "approve": "Approve",
-    "rejectAll": "Reject all {{count}}",
-    "reject": "Reject"
-  },
   "occasionSettings": {
     "title": "Occasion Settings",
     "subtitle": "Configure colors and approval requirements for each occasion type",
     "loading": "Loading...",
-    "confirmedColor": "Confirmed color",
-    "pendingColor": "Pending color",
-    "requiresApproval": "Requires admin approval",
+    "confirmedColor": "Color",
     "save": "Save"
   },
   "occasionType": {

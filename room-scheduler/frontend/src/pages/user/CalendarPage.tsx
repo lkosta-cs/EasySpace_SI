@@ -25,6 +25,7 @@ interface Booking {
   notes?: string;
   status: string;
   occasionType: number;
+  recurringGroupId?: string;
   isOwn: boolean;
 }
 
@@ -39,8 +40,6 @@ interface OccasionConfig {
   occasionType: number;
   label: string;
   color: string;
-  pendingColor: string;
-  requiresApproval: boolean;
 }
 
 export default function CalendarPage() {
@@ -50,6 +49,8 @@ export default function CalendarPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
   const [conflictDates, setConflictDates] = useState<string[]>([]);
+  const [detailModal, setDetailModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
 
   const OCCASION_TYPES = [
     { value: 0, label: t('occasionType.0') },
@@ -130,15 +131,11 @@ export default function CalendarPage() {
     },
     onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ['bookings'] });
-      if (result.status === 'Pending') {
-        toast.success(t('toast.bookingPending'));
-      } else {
-        toast.success(
-          result.count > 1
-            ? t('toast.bookingsCreated', { count: result.count })
-            : t('toast.bookingCreated')
-        );
-      }
+      toast.success(
+        result.count > 1
+          ? t('toast.bookingsCreated', { count: result.count })
+          : t('toast.bookingCreated')
+      );
       setModalOpen(false);
       setConflictDates([]);
       reset();
@@ -153,6 +150,30 @@ export default function CalendarPage() {
       }
     },
   });
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: number) => bookingsApi.cancel(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      toast.success(t('toast.bookingCancelled'));
+      setDetailModal(false);
+      setSelectedBooking(null);
+    },
+    onError: () => toast.error(t('toast.cancelFailed')),
+  });
+
+  const onEventClick = (info: any) => {
+    const booking = bookings.find((b: Booking) => String(b.id) === info.event.id);
+    if (booking) {
+      setSelectedBooking(booking);
+      setDetailModal(true);
+    }
+  };
+
+  const closeDetailModal = () => {
+    setDetailModal(false);
+    setSelectedBooking(null);
+  };
 
   const onSelect = (info: { start: Date; end: Date }) => {
     setSelectedSlot({ start: info.start, end: info.end });
@@ -189,15 +210,8 @@ export default function CalendarPage() {
                 style={{ backgroundColor: config.color }}
               />
               <span className="text-xs text-gray-600">{config.label}</span>
-              {config.requiresApproval && (
-                <span className="text-xs text-gray-400">{t('calendar.requiresApproval')}</span>
-              )}
             </div>
           ))}
-          <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-gray-300" />
-            <span className="text-xs text-gray-600">{t('calendar.pending')}</span>
-          </div>
         </div>
       )}
 
@@ -216,24 +230,23 @@ export default function CalendarPage() {
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay',
           }}
-          events={bookings.map((b: Booking) => {
-            const config = getConfig(b.occasionType);
-            const isPending = b.status === 'Pending';
-            return {
-              id: String(b.id),
-              title: `${b.roomName} — ${b.userName}`,
-              start: b.start,
-              end: b.end,
-              backgroundColor: isPending
-                ? (config?.pendingColor ?? '#d1d5db')
-                : (config?.color ?? '#111827'),
-              borderColor: isPending
-                ? (config?.pendingColor ?? '#d1d5db')
-                : (config?.color ?? '#111827'),
-              textColor: isPending ? '#374151' : '#ffffff',
-            };
-          })}
+          events={bookings
+            .filter((b: Booking) => b.status !== 'Cancelled' && b.status !== 'Rejected')
+            .map((b: Booking) => {
+              const config = getConfig(b.occasionType);
+              return {
+                id: String(b.id),
+                title: `${b.roomName} — ${b.userName}`,
+                start: b.start,
+                end: b.end,
+                backgroundColor: config?.color ?? '#111827',
+                borderColor: config?.color ?? '#111827',
+                textColor: '#ffffff',
+              };
+            })}
           select={onSelect}
+          selectAllow={(selectInfo) => selectInfo.start >= new Date()}
+          eventClick={onEventClick}
           height="auto"
         />
       </div>
@@ -382,6 +395,75 @@ export default function CalendarPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {detailModal && selectedBooking && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-base font-medium text-gray-900 mb-4">
+              {t('calendar.bookingDetails')}
+            </h3>
+
+            <div className="space-y-3 mb-6">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">{t('calendar.room')}</span>
+                <span className="font-medium text-gray-900">{selectedBooking.roomName}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">{t('calendar.bookedBy')}</span>
+                <span className="font-medium text-gray-900">{selectedBooking.userName}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">{t('calendar.type')}</span>
+                <span className="font-medium text-gray-900">
+                  {OCCASION_TYPES.find(o => o.value === selectedBooking.occasionType)?.label}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">{t('calendar.date')}</span>
+                <span className="font-medium text-gray-900">
+                  {format(new Date(selectedBooking.start), 'EEEE, MMMM d yyyy')}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">{t('calendar.time')}</span>
+                <span className="font-medium text-gray-900">
+                  {format(new Date(selectedBooking.start), 'HH:mm')} —{' '}
+                  {format(new Date(selectedBooking.end), 'HH:mm')}
+                </span>
+              </div>
+              {selectedBooking.recurringGroupId && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">{t('calendar.recurring')}</span>
+                  <span className="font-medium text-gray-900">{t('calendar.recurringCancels')}</span>
+                </div>
+              )}
+              {selectedBooking.notes && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">{t('calendar.notes')}</span>
+                  <span className="font-medium text-gray-900">{selectedBooking.notes}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              {selectedBooking.isOwn && selectedBooking.status === 'Confirmed' && (
+                <button
+                  onClick={() => cancelMutation.mutate(selectedBooking.id)}
+                  disabled={cancelMutation.isPending}
+                  className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                >
+                  {t('calendar.cancelBooking')}
+                </button>
+              )}
+              <button
+                onClick={closeDetailModal}
+                className="flex-1 py-2 px-4 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                {t('calendar.close')}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -64,7 +64,6 @@
     "users": "Korisnici",
     "rooms": "Sale",
     "bookings": "Rezervacije",
-    "pending": "Na čekanju",
     "occasionSettings": "Podešavanja termina",
     "myProfile": "Moj profil"
   },
@@ -87,17 +86,12 @@
     "passwordReset": "Lozinka je uspešno resetovana",
     "resetLinkInvalid": "Link za resetovanje je nevažeći ili je istekao",
     "loggedOut": "Uspešno ste se odjavili",
-    "bookingPending": "Rezervacija je podneta i čeka odobrenje",
     "bookingCreated": "Rezervacija je uspešno kreirana",
     "bookingsCreated": "{{count}} rezervacija je uspešno kreirano",
     "conflictsFound": "Pronađeni su konflikti — izaberite drugi termin",
     "bookingFailed": "Kreiranje rezervacije nije uspelo",
     "bookingCancelled": "Rezervacija je otkazana",
     "cancelFailed": "Otkazivanje rezervacije nije uspelo",
-    "bookingApproved": "Rezervacija je odobrena",
-    "approveFailed": "Odobravanje rezervacije nije uspelo",
-    "bookingRejected": "Rezervacija je odbijena",
-    "rejectFailed": "Odbijanje rezervacije nije uspelo",
     "userStatusUpdated": "Status korisnika je ažuriran",
     "userStatusFailed": "Ažuriranje statusa korisnika nije uspelo",
     "roleUpdated": "Uloga je ažurirana",
@@ -121,8 +115,6 @@
     "title": "Kalendar",
     "subtitle": "Kliknite i prevucite da rezervišete salu",
     "adminSubtitle": "Prevucite da kreirate rezervaciju. Kliknite na rezervaciju za upravljanje.",
-    "pending": "Na čekanju",
-    "requiresApproval": "(zahteva odobrenje)",
     "bookRoom": "Rezerviši salu",
     "createBooking": "Kreiraj rezervaciju",
     "bookingDetails": "Detalji rezervacije",
@@ -150,10 +142,6 @@
     "recurring": "Ponavljajuća",
     "recurringCancels": "Da — otkazuje celu seriju",
     "notes": "Napomena",
-    "rejectionReason": "Razlog odbijanja (opciono)",
-    "rejectionPlaceholder": "Unesite razlog odbijanja...",
-    "approve": "Odobri",
-    "reject": "Odbij",
     "cancelBooking": "Otkaži rezervaciju",
     "close": "Zatvori"
   },
@@ -168,7 +156,6 @@
   },
   "status": {
     "Confirmed": "Potvrđena",
-    "Pending": "Na čekanju",
     "Rejected": "Odbijena",
     "Cancelled": "Otkazana"
   },
@@ -211,25 +198,11 @@
     "noBookings": "Još nema rezervacija.",
     "cancel": "Otkaži"
   },
-  "pending": {
-    "title": "Rezervacije na čekanju",
-    "subtitle": "Rezervacije koje čekaju vaše odobrenje",
-    "loading": "Učitavanje...",
-    "noPending": "Nema rezervacija na čekanju.",
-    "recurring": "Ponavljajuća — {{count}} termina",
-    "rejectionReason": "Razlog odbijanja (opciono)",
-    "approveAll": "Odobri svih {{count}}",
-    "approve": "Odobri",
-    "rejectAll": "Odbij svih {{count}}",
-    "reject": "Odbij"
-  },
   "occasionSettings": {
     "title": "Podešavanja termina",
     "subtitle": "Podesite boje i zahteve za odobrenje za svaki tip termina",
     "loading": "Učitavanje...",
-    "confirmedColor": "Boja potvrđenih",
-    "pendingColor": "Boja na čekanju",
-    "requiresApproval": "Zahteva odobrenje administratora",
+    "confirmedColor": "Boja",
     "save": "Sačuvaj"
   },
   "occasionType": {
