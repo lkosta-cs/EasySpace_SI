@@ -31,7 +31,7 @@ public class RoomsController : ControllerBase
     }
 
     // GET /api/rooms/5 — get a single room by id
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     [Authorize]
     public async Task<IActionResult> GetById(int id)
     {
@@ -41,6 +41,80 @@ public class RoomsController : ControllerBase
 
         if (room == null) return NotFound();
         return Ok(room);
+    }
+
+    // GET /api/rooms/search — filterable, sortable, paged room list for the admin management page
+    [HttpGet("search")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> Search(
+        string? search,
+        int? minSeats,
+        string? softwarePackage,
+        string? status,
+        string? sortBy = "name",
+        string? sortDir = "asc",
+        int page = 1,
+        int pageSize = 20)
+    {
+        var query = _db.Rooms.Include(r => r.SoftwarePackages).AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var pattern = $"%{search}%";
+            query = query.Where(r => EF.Functions.ILike(r.Name, pattern));
+        }
+
+        if (minSeats.HasValue)
+            query = query.Where(r => r.Seats >= minSeats.Value);
+
+        if (!string.IsNullOrWhiteSpace(softwarePackage))
+            query = query.Where(r => r.SoftwarePackages.Any(p => p.Name == softwarePackage));
+
+        if (status == "active")
+            query = query.Where(r => r.IsActive);
+        else if (status == "inactive")
+            query = query.Where(r => !r.IsActive);
+
+        var totalCount = await query.CountAsync();
+
+        var descending = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase);
+        query = sortBy switch
+        {
+            "seats" => descending ? query.OrderByDescending(r => r.Seats) : query.OrderBy(r => r.Seats),
+            "status" => descending ? query.OrderByDescending(r => r.IsActive) : query.OrderBy(r => r.IsActive),
+            _ => descending ? query.OrderByDescending(r => r.Name) : query.OrderBy(r => r.Name),
+        };
+
+        // pageSize <= 0 (e.g. -1) means "All" — skip paging entirely
+        if (pageSize > 0)
+            query = query.Skip((Math.Max(page, 1) - 1) * pageSize).Take(pageSize);
+
+        var rooms = await query
+            .Select(r => new {
+                id = r.Id,
+                name = r.Name,
+                seats = r.Seats,
+                description = r.Description,
+                isActive = r.IsActive,
+                softwarePackages = r.SoftwarePackages.Select(p => new { id = p.Id, name = p.Name }).ToList()
+            })
+            .ToListAsync();
+
+        return Ok(new { items = rooms, totalCount, page, pageSize });
+    }
+
+    // GET /api/rooms/software-packages — distinct package names for the filter dropdown
+    [HttpGet("software-packages")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> GetSoftwarePackageNames()
+    {
+        var names = await _db.SoftwarePackages
+            .Select(p => p.Name)
+            .Distinct()
+            .OrderBy(n => n)
+            .ToListAsync();
+
+        return Ok(names);
     }
 
     // POST /api/rooms — admin only
