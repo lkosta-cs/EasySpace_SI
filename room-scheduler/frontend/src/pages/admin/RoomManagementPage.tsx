@@ -5,22 +5,47 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { roomsApi } from '../../api/rooms';
+import { roomsApi, type RoomListItem, type RoomsQueryParams } from '../../api/rooms';
 
-interface Room {
-  id: number;
-  name: string;
-  seats: number;
-  description?: string;
-  isActive: boolean;
-  softwarePackages: { id: number; name: string }[];
-}
+type Room = RoomListItem;
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+const SORT_FIELDS: NonNullable<RoomsQueryParams['sortBy']>[] = ['name', 'seats', 'status'];
 
 export default function RoomManagementPage() {
   const qc = useQueryClient();
   const { t } = useTranslation();
   const [showForm, setShowForm] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
+
+  // Draft filter values — only applied to the query when "Search" is clicked
+  const [searchDraft, setSearchDraft] = useState('');
+  const [minSeatsDraft, setMinSeatsDraft] = useState('');
+  const [softwarePackageDraft, setSoftwarePackageDraft] = useState('');
+  const [statusDraft, setStatusDraft] = useState<'all' | 'active' | 'inactive'>('all');
+
+  // Applied filters — actually sent to the server
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [appliedMinSeats, setAppliedMinSeats] = useState('');
+  const [appliedSoftwarePackage, setAppliedSoftwarePackage] = useState('');
+  const [appliedStatus, setAppliedStatus] = useState<'all' | 'active' | 'inactive'>('all');
+
+  // Sorting and paging — applied immediately
+  const [sortBy, setSortBy] = useState<NonNullable<RoomsQueryParams['sortBy']>>('name');
+  const [sortDir, setSortDir] = useState<NonNullable<RoomsQueryParams['sortDir']>>('asc');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const queryParams: RoomsQueryParams = {
+    search: appliedSearch || undefined,
+    minSeats: appliedMinSeats ? Number(appliedMinSeats) : undefined,
+    softwarePackage: appliedSoftwarePackage || undefined,
+    status: appliedStatus === 'all' ? undefined : appliedStatus,
+    sortBy,
+    sortDir,
+    page,
+    pageSize,
+  };
 
   const schema = z.object({
     name: z.string().min(1, t('validation.roomNameRequired')),
@@ -30,10 +55,42 @@ export default function RoomManagementPage() {
   });
   type FormData = z.infer<typeof schema>;
 
-  const { data: rooms = [], isLoading } = useQuery({
-    queryKey: ['rooms'],
-    queryFn: roomsApi.getAll,
+  const { data, isLoading } = useQuery({
+    queryKey: ['rooms', 'search', queryParams],
+    queryFn: () => roomsApi.search(queryParams),
   });
+
+  const rooms = data?.items ?? [];
+  const totalCount = data?.totalCount ?? 0;
+  const totalPages = pageSize > 0 ? Math.max(1, Math.ceil(totalCount / pageSize)) : 1;
+
+  const { data: softwarePackageOptions = [] } = useQuery({
+    queryKey: ['rooms', 'software-packages'],
+    queryFn: roomsApi.getSoftwarePackages,
+  });
+
+  const runSearch = () => {
+    setAppliedSearch(searchDraft.trim());
+    setAppliedMinSeats(minSeatsDraft.trim());
+    setAppliedSoftwarePackage(softwarePackageDraft);
+    setAppliedStatus(statusDraft);
+    setPage(1);
+  };
+
+  const toggleSort = (field: NonNullable<RoomsQueryParams['sortBy']>) => {
+    if (sortBy === field) {
+      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortDir('asc');
+    }
+    setPage(1);
+  };
+
+  const changePageSize = (value: number) => {
+    setPageSize(value);
+    setPage(1);
+  };
 
   const {
     register,
@@ -214,11 +271,88 @@ export default function RoomManagementPage() {
         </div>
       )}
 
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-4 space-y-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-55">
+            <input
+              type="text"
+              value={searchDraft}
+              onChange={(e) => setSearchDraft(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && runSearch()}
+              placeholder={t('rooms.searchPlaceholder')}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-900"
+            />
+          </div>
+
+          <input
+            type="number"
+            min={0}
+            value={minSeatsDraft}
+            onChange={(e) => setMinSeatsDraft(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && runSearch()}
+            placeholder={t('rooms.minSeats')}
+            className="w-32 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-900"
+          />
+
+          <select
+            value={softwarePackageDraft}
+            onChange={(e) => setSoftwarePackageDraft(e.target.value)}
+            className="text-sm border border-gray-300 rounded-lg px-3 py-2 text-gray-700"
+          >
+            <option value="">{t('rooms.filterSoftware')}</option>
+            {softwarePackageOptions.map((name: string) => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+
+          <select
+            value={statusDraft}
+            onChange={(e) => setStatusDraft(e.target.value as 'all' | 'active' | 'inactive')}
+            className="text-sm border border-gray-300 rounded-lg px-3 py-2 text-gray-700"
+          >
+            <option value="all">{t('rooms.filterStatus')}: {t('rooms.statusAll')}</option>
+            <option value="active">{t('rooms.filterStatus')}: {t('rooms.statusActive')}</option>
+            <option value="inactive">{t('rooms.filterStatus')}: {t('rooms.statusInactive')}</option>
+          </select>
+
+          <button
+            type="button"
+            onClick={runSearch}
+            className="text-sm bg-gray-900 text-white rounded-lg px-4 py-2 hover:bg-gray-800"
+          >
+            {t('rooms.search')}
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-gray-100">
+          <span className="text-xs text-gray-500">{t('rooms.sortBy')}:</span>
+          {SORT_FIELDS.map((field) => (
+            <button
+              key={field}
+              type="button"
+              onClick={() => toggleSort(field)}
+              className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                sortBy === field
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {t(`rooms.sort${field[0].toUpperCase()}${field.slice(1)}`)}
+              {sortBy === field && (sortDir === 'asc' ? ' ↑' : ' ↓')}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {isLoading ? (
         <p className="text-sm text-gray-500">{t('rooms.loading')}</p>
       ) : rooms.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
-          <p className="text-sm">{t('rooms.noRooms')}</p>
+          <p className="text-sm">
+            {appliedSearch || appliedMinSeats || appliedSoftwarePackage || appliedStatus !== 'all'
+              ? t('rooms.noRoomsFiltered')
+              : t('rooms.noRooms')}
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -273,6 +407,48 @@ export default function RoomManagementPage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {!isLoading && rooms.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">{t('rooms.pageSize')}:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => changePageSize(Number(e.target.value))}
+              className="text-xs border border-gray-300 rounded-lg px-2 py-1"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>{size}</option>
+              ))}
+              <option value={-1}>{t('rooms.pageSizeAll')}</option>
+            </select>
+          </div>
+
+          {pageSize > 0 && (
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="text-xs px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                {t('rooms.pagePrev')}
+              </button>
+              <span className="text-xs text-gray-500">
+                {t('rooms.pageOf', { page, totalPages })}
+              </span>
+              <button
+                type="button"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="text-xs px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
+              >
+                {t('rooms.pageNext')}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
