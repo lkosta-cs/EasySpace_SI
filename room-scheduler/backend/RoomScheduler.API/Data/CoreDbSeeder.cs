@@ -4,18 +4,21 @@ using RoomScheduler.API.Models;
 
 namespace RoomScheduler.API.Data;
 
-public static class DbSeeder
+public static class CoreDbSeeder
 {
-    public static async Task SeedAsync(IServiceProvider services)
+    public static async Task SeedCoreAsync(IServiceProvider services)
     {
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var db = services.GetRequiredService<AppDbContext>();
 
-        // Seed SuperAdmin
         const string superAdminEmail = "superadmin@roomscheduler.local";
+        
         if (await userManager.FindByEmailAsync(superAdminEmail) == null)
         {
-            var superAdmin = new ApplicationUser {
+            var superAdmin = new ApplicationUser 
+            {
+
+                Id = "97c3bf8e-6b52-46b7-aa11-8468cf956766", 
                 UserName = superAdminEmail,
                 Email = superAdminEmail,
                 FirstName = "Super",
@@ -24,41 +27,11 @@ public static class DbSeeder
                 EmailConfirmed = true,
                 Role = UserRole.SuperAdmin
             };
+            
+            // Koristimo tvoju originalnu lozinku, userManager će je sam hesirati
             await userManager.CreateAsync(superAdmin, "SuperAdmin123!");
         }
-        // Primer dodavanja običnog studenta/korisnika
-        if (!await userManager.Users.AnyAsync(u => u.Email == "student@roomscheduler.local"))
-        {
-            var student = new ApplicationUser
-            {
-                UserName = "student@roomscheduler.local",
-                Email = "student@roomscheduler.local",
-                FirstName = "Luka",
-                LastName = "Kostadinovic",
-                Role = UserRole.User, // Tvoja enum uloga za običnog studenta
-                EmailConfirmed = true
-            };
-            await userManager.CreateAsync(student, "Student123!");
-        }
 
-        // Primer dodavanja profesora
-        if (!await userManager.Users.AnyAsync(u => u.Email == "profesor@roomscheduler.local"))
-        {
-            var profesor = new ApplicationUser
-            {
-                UserName = "profesor@roomscheduler.local",
-                Email = "profesor@roomscheduler.local",
-                FirstName = "Petar",
-                LastName = "Petrović",
-                Role = UserRole.Professor,
-                EmailConfirmed = true
-            };
-            await userManager.CreateAsync(profesor, "Profesor123!");
-        }
-
-
-
-        // Seed OccasionTypeConfigs
         if (!await db.OccasionTypeConfigs.AnyAsync())
         {
             db.OccasionTypeConfigs.AddRange(

@@ -10,7 +10,7 @@ public class Booking
     public DateTime Start { get; set; }
     public DateTime End { get; set; }
     public string? Notes { get; set; }
-    public BookingStatus Status { get; set; } = BookingStatus.Confirmed;
+    public bool IsCancelled { get; set; } = false;
     public OccasionType OccasionType { get; set; }
 
     // Recurring booking fields
@@ -18,13 +18,6 @@ public class Booking
     public bool IsRecurringRoot { get; set; } = false;
     public RecurrencePattern? RecurrencePattern { get; set; }
     public DateTime? RecurrenceEndDate { get; set; }
-}
-
-public enum BookingStatus
-{
-    Confirmed = 0,
-    Cancelled = 2,
-    Rejected = 3
 }
 
 public enum OccasionType

@@ -199,6 +199,9 @@ namespace RoomScheduler.API.Migrations
                     b.Property<DateTime>("End")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsRecurringRoot")
                         .HasColumnType("boolean");
 
@@ -222,9 +225,6 @@ namespace RoomScheduler.API.Migrations
 
                     b.Property<DateTime>("Start")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
 
                     b.Property<string>("UserId")
                         .IsRequired()

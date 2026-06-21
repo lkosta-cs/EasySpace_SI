@@ -22,7 +22,7 @@ interface Booking {
   start: string;
   end: string;
   notes?: string;
-  status: string;
+  isCancelled: boolean;
   occasionType: number;
   recurringGroupId?: string;
   isOwn: boolean;
@@ -138,7 +138,7 @@ export default function AdminCalendarPage() {
   const filteredBookings = useMemo(() => {
     const now = new Date();
     return bookings.filter((b: Booking) => {
-      const statusOk = b.status === 'Cancelled'
+      const statusOk = b.isCancelled
         ? statusFilters.has('cancelled')
         : statusFilters.has(new Date(b.end) < now ? 'past' : 'upcoming');
       if (!statusOk) return false;
@@ -321,9 +321,8 @@ export default function AdminCalendarPage() {
             right: 'dayGridMonth,timeGridWeek,timeGridDay',
           }}
           events={filteredBookings.map((b: Booking) => {
-            const isCancelled = b.status === 'Cancelled';
             const config = getConfig(b.occasionType);
-            const color = isCancelled ? '#9ca3af' : config?.color ?? '#111827';
+            const color = b.isCancelled ? '#9ca3af' : config?.color ?? '#111827';
             return {
               id: String(b.id),
               title: `${b.roomName} — ${b.userName}`,
@@ -495,11 +494,11 @@ export default function AdminCalendarPage() {
                 {t('calendar.bookingDetails')}
               </h3>
               <span className={`text-xs px-2 py-0.5 rounded-full ${
-                selectedBooking.status === 'Confirmed'
-                  ? 'bg-green-100 text-green-700'
-                  : 'bg-red-100 text-red-600'
+                selectedBooking.isCancelled
+                  ? 'bg-red-100 text-red-600'
+                  : 'bg-green-100 text-green-700'
               }`}>
-                {t(`status.${selectedBooking.status}`, { defaultValue: selectedBooking.status })}
+                {selectedBooking.isCancelled ? t('status.Cancelled') : t('status.Confirmed')}
               </span>
             </div>
 
@@ -546,7 +545,7 @@ export default function AdminCalendarPage() {
             </div>
 
             <div className="flex gap-3">
-              {selectedBooking.status === 'Confirmed' && (
+              {!selectedBooking.isCancelled && (
                 <button
                   onClick={() => cancelMutation.mutate(selectedBooking.id)}
                   className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
