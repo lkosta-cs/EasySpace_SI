@@ -58,6 +58,21 @@ export default function MyBookingsPage() {
     onError: () => toast.error(t('toast.cancelFailed')),
   });
 
+  const restoreMutation = useMutation({
+    mutationFn: (id: number) => bookingsApi.restore(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-bookings'] });
+      toast.success(t('toast.bookingRestored'));
+    },
+    onError: (err: any) => {
+      toast.error(
+        err?.response?.status === 409
+          ? t('toast.conflictsFound')
+          : t('toast.restoreFailed')
+      );
+    },
+  });
+
   return (
     <div>
       <div className="mb-6">
@@ -74,7 +89,7 @@ export default function MyBookingsPage() {
               onChange={() => toggleStatusFilter(filter)}
               className="rounded border-gray-300"
             />
-            {t(`calendar.filter${filter[0].toUpperCase()}${filter.slice(1)}`)}
+            {filter === 'cancelled' ? t('status.Cancelled') : t(`calendar.filter${filter[0].toUpperCase()}${filter.slice(1)}`)}
           </label>
         ))}
       </div>
@@ -108,7 +123,7 @@ export default function MyBookingsPage() {
                   )}
                   {booking.isCancelled && (
                     <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
-                      {t('calendar.filterCancelled')}
+                      {t('status.Cancelled')}
                     </span>
                   )}
                 </div>
@@ -123,7 +138,14 @@ export default function MyBookingsPage() {
                   <p className="text-xs text-gray-400 mt-1 italic">{booking.notes}</p>
                 )}
               </div>
-              {!booking.isCancelled && (
+              {booking.isCancelled ? (
+                <button
+                  onClick={() => restoreMutation.mutate(booking.id)}
+                  className="text-sm text-green-600 hover:text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors"
+                >
+                  {t('myBookings.restore')}
+                </button>
+              ) : (
                 <button
                   onClick={() => cancelMutation.mutate(booking.id)}
                   className="text-sm text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"

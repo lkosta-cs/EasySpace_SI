@@ -149,6 +149,15 @@ export default function RoomManagementPage() {
     onError: () => toast.error(t('toast.roomDeactivateFailed')),
   });
 
+  const reactivateMutation = useMutation({
+    mutationFn: roomsApi.reactivate,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['rooms'] });
+      toast.success(t('toast.roomReactivated'));
+    },
+    onError: () => toast.error(t('toast.roomReactivateFailed')),
+  });
+
   const onSubmit = (data: FormData): void => {
     if (editingRoom) {
       updateMutation.mutate(data);
@@ -396,12 +405,19 @@ export default function RoomManagementPage() {
                 >
                   {t('rooms.edit')}
                 </button>
-                {room.isActive && (
+                {room.isActive ? (
                   <button
                     onClick={() => deleteMutation.mutate(room.id)}
                     className="text-sm text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
                   >
                     {t('rooms.deactivate')}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => reactivateMutation.mutate(room.id)}
+                    className="text-sm text-green-600 hover:text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors"
+                  >
+                    {t('rooms.activate')}
                   </button>
                 )}
               </div>

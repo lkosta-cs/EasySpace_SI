@@ -34,6 +34,9 @@
   <data name="ConflictsFoundMessage" xml:space="preserve">
     <value>Konflikti pronađeni na sledećim datumima</value>
   </data>
+  <data name="BookingNotCancelled" xml:space="preserve">
+    <value>Ova rezervacija nije otkazana</value>
+  </data>
 
   <!-- Users -->
   <data name="InvalidRole" xml:space="preserve">

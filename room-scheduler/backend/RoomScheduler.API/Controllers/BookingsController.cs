@@ -211,6 +211,37 @@ public class BookingsController : ControllerBase
         return NoContent();
     }
 
+    // PUT /api/bookings/{id}/restore — un-cancel a cancelled booking
+    [HttpPut("{id}/restore")]
+    public async Task<IActionResult> Restore(int id)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var isAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
+
+        var booking = await _db.Bookings.FirstOrDefaultAsync(b => b.Id == id);
+
+        if (booking == null) return NotFound();
+        if (booking.UserId != currentUserId && !isAdmin)
+            return Forbid();
+        if (!booking.IsCancelled)
+            return BadRequest(_localizer["BookingNotCancelled"].Value);
+
+        var conflict = await _db.Bookings.AnyAsync(b =>
+            b.Id != id &&
+            b.RoomId == booking.RoomId &&
+            !b.IsCancelled &&
+            b.Start < booking.End &&
+            b.End > booking.Start);
+
+        if (conflict)
+            return Conflict(new { message = _localizer["ConflictsFoundMessage"].Value });
+
+        booking.IsCancelled = false;
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
     // Helper — generate all dates for a recurring series
     private static List<(DateTime start, DateTime end)> GenerateDates(
         DateTime start,
