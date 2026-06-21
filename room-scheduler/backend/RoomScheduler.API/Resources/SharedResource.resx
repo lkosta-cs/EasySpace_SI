@@ -34,6 +34,9 @@
   <data name="ConflictsFoundMessage" xml:space="preserve">
     <value>Conflicts found on the following dates</value>
   </data>
+  <data name="BookingNotCancelled" xml:space="preserve">
+    <value>This booking is not cancelled</value>
+  </data>
 
   <!-- Users -->
   <data name="InvalidRole" xml:space="preserve">

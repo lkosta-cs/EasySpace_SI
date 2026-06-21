@@ -37,4 +37,5 @@ export const roomsApi = {
   create: (data: object) => api.post('/api/rooms', data).then(r => r.data),
   update: (id: number, data: object) => api.put(`/api/rooms/${id}`, data).then(r => r.data),
   delete: (id: number) => api.delete(`/api/rooms/${id}`),
+  reactivate: (id: number) => api.put(`/api/rooms/${id}/reactivate`),
 };

@@ -19,6 +19,7 @@ interface Booking {
   id: number;
   roomId: number;
   roomName: string;
+  userId: string;
   userName: string;
   start: string;
   end: string;
@@ -65,18 +66,7 @@ export default function CalendarPage() {
   const [conflictDates, setConflictDates] = useState<string[]>([]);
   const [detailModal, setDetailModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [statusFilters, setStatusFilters] = useState<Set<'upcoming' | 'past' | 'cancelled'>>(
-    new Set(['upcoming'])
-  );
-
-  const toggleStatusFilter = (filter: 'upcoming' | 'past' | 'cancelled') => {
-    setStatusFilters((prev) => {
-      const next = new Set(prev);
-      if (next.has(filter)) next.delete(filter);
-      else next.add(filter);
-      return next;
-    });
-  };
+  const [showCancelled, setShowCancelled] = useState(false);
 
   const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(
     new Set(DEPARTMENTS)
@@ -93,10 +83,62 @@ export default function CalendarPage() {
     });
   };
 
+  const [selectedOccasionTypes, setSelectedOccasionTypes] = useState<Set<number>>(
+    new Set([0, 1, 2])
+  );
+  const [occasionDropdownOpen, setOccasionDropdownOpen] = useState(false);
+  const occasionDropdownRef = useRef<HTMLDivElement>(null);
+
+  const toggleOccasionType = (value: number) => {
+    setSelectedOccasionTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(value)) next.delete(value);
+      else next.add(value);
+      return next;
+    });
+  };
+
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+  const usersInitializedRef = useRef(false);
+
+  const toggleUserId = (id: string) => {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const [selectedRoomIds, setSelectedRoomIds] = useState<Set<number>>(new Set());
+  const [roomDropdownOpen, setRoomDropdownOpen] = useState(false);
+  const roomDropdownRef = useRef<HTMLDivElement>(null);
+  const roomsInitializedRef = useRef(false);
+
+  const toggleRoomId = (id: number) => {
+    setSelectedRoomIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
       if (deptDropdownRef.current && !deptDropdownRef.current.contains(e.target as Node)) {
         setDeptDropdownOpen(false);
+      }
+      if (occasionDropdownRef.current && !occasionDropdownRef.current.contains(e.target as Node)) {
+        setOccasionDropdownOpen(false);
+      }
+      if (userDropdownRef.current && !userDropdownRef.current.contains(e.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+      if (roomDropdownRef.current && !roomDropdownRef.current.contains(e.target as Node)) {
+        setRoomDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', onClickOutside);
@@ -138,17 +180,38 @@ export default function CalendarPage() {
   const getConfig = (occasionType: number): OccasionConfig | undefined =>
     configs.find((c: OccasionConfig) => c.occasionType === occasionType);
 
+  const bookingUsers = useMemo(() => {
+    const map = new Map<string, string>();
+    bookings.forEach((b: Booking) => {
+      if (b.userId) map.set(b.userId, b.userName);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [bookings]);
+
+  useEffect(() => {
+    if (!usersInitializedRef.current && bookingUsers.length > 0) {
+      setSelectedUserIds(new Set(bookingUsers.map((u) => u.id)));
+      usersInitializedRef.current = true;
+    }
+  }, [bookingUsers]);
+
+  useEffect(() => {
+    if (!roomsInitializedRef.current && rooms.length > 0) {
+      setSelectedRoomIds(new Set(rooms.map((r: Room) => r.id)));
+      roomsInitializedRef.current = true;
+    }
+  }, [rooms]);
+
   const filteredBookings = useMemo(() => {
-    const now = new Date();
     return bookings.filter((b: Booking) => {
-      const statusOk = b.isCancelled
-        ? statusFilters.has('cancelled')
-        : statusFilters.has(new Date(b.end) < now ? 'past' : 'upcoming');
-      if (!statusOk) return false;
+      if (b.isCancelled && !showCancelled) return false;
+      if (!selectedOccasionTypes.has(b.occasionType)) return false;
+      if (usersInitializedRef.current && !selectedUserIds.has(b.userId)) return false;
+      if (roomsInitializedRef.current && !selectedRoomIds.has(b.roomId)) return false;
       if (!b.departmentLabel) return true;
       return selectedDepartments.has(b.departmentLabel);
     });
-  }, [bookings, statusFilters, selectedDepartments]);
+  }, [bookings, showCancelled, selectedOccasionTypes, selectedUserIds, selectedRoomIds, selectedDepartments]);
 
   const availableOccasions = OCCASION_TYPES.filter(o => {
     if (user?.role === 'Assistant') return o.value === 2;
@@ -225,6 +288,23 @@ export default function CalendarPage() {
     onError: () => toast.error(t('toast.cancelFailed')),
   });
 
+  const restoreMutation = useMutation({
+    mutationFn: (id: number) => bookingsApi.restore(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      toast.success(t('toast.bookingRestored'));
+      setDetailModal(false);
+      setSelectedBooking(null);
+    },
+    onError: (err: any) => {
+      toast.error(
+        err?.response?.status === 409
+          ? t('toast.conflictsFound')
+          : t('toast.restoreFailed')
+      );
+    },
+  });
+
   const onEventClick = (info: any) => {
     const booking = bookings.find((b: Booking) => String(b.id) === info.event.id);
     if (booking) {
@@ -272,24 +352,151 @@ export default function CalendarPage() {
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: config.color }}
               />
-              <span className="text-xs text-gray-600">{config.label}</span>
+              <span className="text-xs text-gray-600">{t(`occasionType.${config.occasionType}`)}</span>
             </div>
           ))}
         </div>
       )}
 
       <div className="flex gap-4 mb-4 flex-wrap items-start">
-        {(['upcoming', 'past', 'cancelled'] as const).map((filter) => (
-          <label key={filter} className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={statusFilters.has(filter)}
-              onChange={() => toggleStatusFilter(filter)}
-              className="rounded border-gray-300"
-            />
-            {t(`calendar.filter${filter[0].toUpperCase()}${filter.slice(1)}`)}
-          </label>
-        ))}
+        <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={showCancelled}
+            onChange={() => setShowCancelled((v) => !v)}
+            className="rounded border-gray-300"
+          />
+          {t('calendar.filterCancelled')}
+        </label>
+
+        <div className="relative" ref={occasionDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setOccasionDropdownOpen((open) => !open)}
+            className="text-xs text-gray-600 border border-gray-300 rounded-lg px-3 py-1 hover:bg-gray-50"
+          >
+            {t('calendar.occasionTypesFilter')} ({selectedOccasionTypes.size}/{OCCASION_TYPES.length}) ▾
+          </button>
+          {occasionDropdownOpen && (
+            <div className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-56">
+              <div className="flex justify-between mb-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedOccasionTypes(new Set(OCCASION_TYPES.map(o => o.value)))}
+                  className="text-xs text-gray-500 hover:text-gray-900"
+                >
+                  {t('calendar.selectAll')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedOccasionTypes(new Set())}
+                  className="text-xs text-gray-500 hover:text-gray-900"
+                >
+                  {t('calendar.clearAll')}
+                </button>
+              </div>
+              <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                {OCCASION_TYPES.map((o) => (
+                  <label key={o.value} className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedOccasionTypes.has(o.value)}
+                      onChange={() => toggleOccasionType(o.value)}
+                      className="rounded border-gray-300"
+                    />
+                    {o.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="relative" ref={userDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setUserDropdownOpen((open) => !open)}
+            className="text-xs text-gray-600 border border-gray-300 rounded-lg px-3 py-1 hover:bg-gray-50"
+          >
+            {t('calendar.usersFilter')} ({selectedUserIds.size}/{bookingUsers.length}) ▾
+          </button>
+          {userDropdownOpen && (
+            <div className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-56">
+              <div className="flex justify-between mb-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUserIds(new Set(bookingUsers.map(u => u.id)))}
+                  className="text-xs text-gray-500 hover:text-gray-900"
+                >
+                  {t('calendar.selectAll')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedUserIds(new Set())}
+                  className="text-xs text-gray-500 hover:text-gray-900"
+                >
+                  {t('calendar.clearAll')}
+                </button>
+              </div>
+              <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                {bookingUsers.map((u) => (
+                  <label key={u.id} className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedUserIds.has(u.id)}
+                      onChange={() => toggleUserId(u.id)}
+                      className="rounded border-gray-300"
+                    />
+                    {u.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="relative" ref={roomDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setRoomDropdownOpen((open) => !open)}
+            className="text-xs text-gray-600 border border-gray-300 rounded-lg px-3 py-1 hover:bg-gray-50"
+          >
+            {t('calendar.roomsFilter')} ({selectedRoomIds.size}/{rooms.length}) ▾
+          </button>
+          {roomDropdownOpen && (
+            <div className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-56">
+              <div className="flex justify-between mb-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRoomIds(new Set(rooms.map((r: Room) => r.id)))}
+                  className="text-xs text-gray-500 hover:text-gray-900"
+                >
+                  {t('calendar.selectAll')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRoomIds(new Set())}
+                  className="text-xs text-gray-500 hover:text-gray-900"
+                >
+                  {t('calendar.clearAll')}
+                </button>
+              </div>
+              <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                {rooms.map((room: Room) => (
+                  <label key={room.id} className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedRoomIds.has(room.id)}
+                      onChange={() => toggleRoomId(room.id)}
+                      className="rounded border-gray-300"
+                    />
+                    {room.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="relative" ref={deptDropdownRef}>
           <button
@@ -567,14 +774,24 @@ export default function CalendarPage() {
             </div>
 
             <div className="flex gap-3">
-              {selectedBooking.isOwn && !selectedBooking.isCancelled && (
-                <button
-                  onClick={() => cancelMutation.mutate(selectedBooking.id)}
-                  disabled={cancelMutation.isPending}
-                  className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-                >
-                  {t('calendar.cancelBooking')}
-                </button>
+              {selectedBooking.isOwn && (
+                selectedBooking.isCancelled ? (
+                  <button
+                    onClick={() => restoreMutation.mutate(selectedBooking.id)}
+                    disabled={restoreMutation.isPending}
+                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
+                  >
+                    {t('calendar.restoreBooking')}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => cancelMutation.mutate(selectedBooking.id)}
+                    disabled={cancelMutation.isPending}
+                    className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    {t('calendar.cancelBooking')}
+                  </button>
+                )
               )}
               <button
                 onClick={closeDetailModal}

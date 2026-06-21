@@ -106,6 +106,10 @@
     "roomUpdateFailed": "Failed to update room",
     "roomDeactivated": "Room deactivated",
     "roomDeactivateFailed": "Failed to deactivate room",
+    "roomReactivated": "Room reactivated",
+    "roomReactivateFailed": "Failed to reactivate room",
+    "bookingRestored": "Booking restored",
+    "restoreFailed": "Failed to restore booking",
     "settingsSaved": "Settings saved",
     "settingsFailed": "Failed to save settings",
     "profileUpdated": "Profile updated successfully",
@@ -143,11 +147,15 @@
     "recurringCancels": "Yes — cancels whole series",
     "notes": "Notes",
     "cancelBooking": "Cancel booking",
+    "restoreBooking": "Restore booking",
     "close": "Close",
     "filterUpcoming": "Upcoming",
     "filterPast": "Past",
-    "filterCancelled": "Cancelled",
+    "filterCancelled": "Show cancelled",
     "departments": "Departments",
+    "occasionTypesFilter": "Occasion types",
+    "usersFilter": "Users",
+    "roomsFilter": "Rooms",
     "selectAll": "Select all",
     "clearAll": "Clear all"
   },
@@ -158,7 +166,8 @@
     "noBookings": "No bookings yet.",
     "goToCalendar": "Go to the calendar and drag to book a room.",
     "recurring": "Recurring",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "restore": "Restore"
   },
   "status": {
     "Confirmed": "Confirmed",
@@ -206,6 +215,7 @@
     "inactive": "Inactive",
     "edit": "Edit",
     "deactivate": "Deactivate",
+    "activate": "Activate",
     "name": "Room name",
     "seats": "Seats",
     "seatsLabel": "{{count}} seats",
@@ -238,7 +248,8 @@
     "subtitle": "All room reservations across all users",
     "loading": "Loading bookings...",
     "noBookings": "No bookings yet.",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "restore": "Restore"
   },
   "occasionSettings": {
     "title": "Occasion Settings",

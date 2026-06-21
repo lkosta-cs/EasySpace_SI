@@ -5,4 +5,5 @@ export const bookingsApi = {
   getMine: () => api.get('/api/bookings/my').then(r => r.data),
   create: (data: object) => api.post('/api/bookings', data).then(r => r.data),
   cancel: (id: number) => api.delete(`/api/bookings/${id}`),
+  restore: (id: number) => api.put(`/api/bookings/${id}/restore`),
 };

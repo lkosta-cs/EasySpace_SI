@@ -181,6 +181,19 @@ public class RoomsController : ControllerBase
         await _db.SaveChangesAsync();
         return NoContent();
     }
+
+    // PUT /api/rooms/5/reactivate — admin only, undo a soft delete
+    [HttpPut("{id}/reactivate")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> Reactivate(int id)
+    {
+        var room = await _db.Rooms.FindAsync(id);
+        if (room == null) return NotFound();
+
+        room.IsActive = true;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
 }
 
 public record RoomDto(
