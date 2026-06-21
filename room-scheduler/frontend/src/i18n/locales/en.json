@@ -162,7 +162,6 @@
   },
   "status": {
     "Confirmed": "Confirmed",
-    "Rejected": "Rejected",
     "Cancelled": "Cancelled"
   },
   "users": {

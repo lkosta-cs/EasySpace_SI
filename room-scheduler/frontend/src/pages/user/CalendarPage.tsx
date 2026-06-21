@@ -23,7 +23,7 @@ interface Booking {
   start: string;
   end: string;
   notes?: string;
-  status: string;
+  isCancelled: boolean;
   occasionType: number;
   recurringGroupId?: string;
   isOwn: boolean;
@@ -141,7 +141,7 @@ export default function CalendarPage() {
   const filteredBookings = useMemo(() => {
     const now = new Date();
     return bookings.filter((b: Booking) => {
-      const statusOk = b.status === 'Cancelled'
+      const statusOk = b.isCancelled
         ? statusFilters.has('cancelled')
         : statusFilters.has(new Date(b.end) < now ? 'past' : 'upcoming');
       if (!statusOk) return false;
@@ -351,9 +351,8 @@ export default function CalendarPage() {
             right: 'dayGridMonth,timeGridWeek,timeGridDay',
           }}
           events={filteredBookings.map((b: Booking) => {
-            const isCancelled = b.status === 'Cancelled';
             const config = getConfig(b.occasionType);
-            const color = isCancelled ? '#9ca3af' : config?.color ?? '#111827';
+            const color = b.isCancelled ? '#9ca3af' : config?.color ?? '#111827';
             return {
               id: String(b.id),
               title: `${b.roomName} — ${b.userName}`,
@@ -568,7 +567,7 @@ export default function CalendarPage() {
             </div>
 
             <div className="flex gap-3">
-              {selectedBooking.isOwn && selectedBooking.status === 'Confirmed' && (
+              {selectedBooking.isOwn && !selectedBooking.isCancelled && (
                 <button
                   onClick={() => cancelMutation.mutate(selectedBooking.id)}
                   disabled={cancelMutation.isPending}

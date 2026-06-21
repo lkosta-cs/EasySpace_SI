@@ -48,7 +48,7 @@ public class BookingsController : ControllerBase
                 start = b.Start,
                 end = b.End,
                 notes = b.Notes,
-                status = b.Status.ToString(),
+                isCancelled = b.IsCancelled,
                 occasionType = b.OccasionType,
                 occasionTypeLabel = b.OccasionType.ToString(),
                 recurringGroupId = b.RecurringGroupId,
@@ -77,7 +77,7 @@ public class BookingsController : ControllerBase
                 start = b.Start,
                 end = b.End,
                 notes = b.Notes,
-                status = b.Status.ToString(),
+                isCancelled = b.IsCancelled,
                 occasionType = b.OccasionType,
                 occasionTypeLabel = b.OccasionType.ToString(),
                 recurringGroupId = b.RecurringGroupId,
@@ -113,8 +113,6 @@ public class BookingsController : ControllerBase
         if (room == null || !room.IsActive)
             return BadRequest(_localizer["RoomNotFoundOrInactive"].Value);
 
-        const BookingStatus status = BookingStatus.Confirmed;
-
         // Generate all dates for the series
         var dates = GenerateDates(dto.Start, dto.End,
             dto.RecurrencePattern, dto.RecurrenceEndDate);
@@ -125,8 +123,7 @@ public class BookingsController : ControllerBase
         {
             var conflict = await _db.Bookings.AnyAsync(b =>
                 b.RoomId == dto.RoomId &&
-                b.Status != BookingStatus.Cancelled &&
-                b.Status != BookingStatus.Rejected &&
+                !b.IsCancelled &&
                 b.Start < end &&
                 b.End > start);
 
@@ -151,7 +148,6 @@ public class BookingsController : ControllerBase
             Start = datePair.start,
             End = datePair.end,
             Notes = dto.Notes,
-            Status = status,
             OccasionType = dto.OccasionType,
             RecurringGroupId = groupId,
             IsRecurringRoot = index == 0,
@@ -164,7 +160,6 @@ public class BookingsController : ControllerBase
 
         return Ok(new {
             count = bookings.Count,
-            status = status.ToString(),
             recurringGroupId = groupId
         });
     }
@@ -192,14 +187,14 @@ public class BookingsController : ControllerBase
             var group = await _db.Bookings
                 .Where(b => b.RecurringGroupId == booking.RecurringGroupId &&
                            b.Start >= now &&
-                           b.Status != BookingStatus.Cancelled)
+                           !b.IsCancelled)
                 .ToListAsync();
             foreach (var b in group)
-                b.Status = BookingStatus.Cancelled;
+                b.IsCancelled = true;
         }
         else
         {
-            booking.Status = BookingStatus.Cancelled;
+            booking.IsCancelled = true;
         }
 
         await _db.SaveChangesAsync();
