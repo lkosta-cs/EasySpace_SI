@@ -2,18 +2,12 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { usersApi } from '../../api/users';
+import { usersApi, type UserListItem, type UsersQueryParams } from '../../api/users';
 import { roomsApi } from '../../api/rooms';
 import { useAuthStore } from '../../stores/authStore';
 import EditUserModal from '../../components/EditUserModal';
 
-interface User {
-  id: string;
-  email: string;
-  fullName: string;
-  isActive: boolean;
-  role: string;
-}
+type User = UserListItem;
 
 interface Permission {
   roomId: number;
@@ -26,6 +20,10 @@ interface Room {
   name: string;
 }
 
+const ROLE_OPTIONS = ['User', 'Assistant', 'Professor', 'Admin', 'SuperAdmin'];
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
+const SORT_FIELDS: NonNullable<UsersQueryParams['sortBy']>[] = ['name', 'surname', 'email', 'role', 'status'];
+
 export default function UserManagementPage() {
   const qc = useQueryClient();
   const { t } = useTranslation();
@@ -36,15 +34,77 @@ export default function UserManagementPage() {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [editUserId, setEditUserId] = useState<string | null>(null);
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: usersApi.getAll,
+  // Draft filter values — only applied to the query when "Search" is clicked
+  const [searchDraft, setSearchDraft] = useState('');
+  const [rolesDraft, setRolesDraft] = useState<Set<string>>(new Set());
+  const [statusDraft, setStatusDraft] = useState<'all' | 'active' | 'inactive'>('all');
+  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
+
+  // Applied filters — actually sent to the server
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [appliedRoles, setAppliedRoles] = useState<Set<string>>(new Set());
+  const [appliedStatus, setAppliedStatus] = useState<'all' | 'active' | 'inactive'>('all');
+
+  // Sorting and paging — applied immediately
+  const [sortBy, setSortBy] = useState<NonNullable<UsersQueryParams['sortBy']>>('name');
+  const [sortDir, setSortDir] = useState<NonNullable<UsersQueryParams['sortDir']>>('asc');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  const queryParams: UsersQueryParams = {
+    search: appliedSearch || undefined,
+    roles: appliedRoles.size > 0 ? Array.from(appliedRoles) : undefined,
+    status: appliedStatus === 'all' ? undefined : appliedStatus,
+    sortBy,
+    sortDir,
+    page,
+    pageSize,
+  };
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['users', queryParams],
+    queryFn: () => usersApi.getAll(queryParams),
   });
+
+  const users = data?.items ?? [];
+  const totalCount = data?.totalCount ?? 0;
+  const totalPages = pageSize > 0 ? Math.max(1, Math.ceil(totalCount / pageSize)) : 1;
 
   const { data: rooms = [] } = useQuery({
     queryKey: ['rooms'],
     queryFn: roomsApi.getAll,
   });
+
+  const runSearch = () => {
+    setAppliedSearch(searchDraft.trim());
+    setAppliedRoles(new Set(rolesDraft));
+    setAppliedStatus(statusDraft);
+    setPage(1);
+  };
+
+  const toggleRoleDraft = (role: string) => {
+    setRolesDraft((prev) => {
+      const next = new Set(prev);
+      if (next.has(role)) next.delete(role);
+      else next.add(role);
+      return next;
+    });
+  };
+
+  const toggleSort = (field: NonNullable<UsersQueryParams['sortBy']>) => {
+    if (sortBy === field) {
+      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortDir('asc');
+    }
+    setPage(1);
+  };
+
+  const changePageSize = (value: number) => {
+    setPageSize(value);
+    setPage(1);
+  };
 
   const toggleActiveMutation = useMutation({
     mutationFn: (id: string) => usersApi.toggleActive(id),
@@ -101,12 +161,95 @@ export default function UserManagementPage() {
         <p className="text-sm text-gray-500 mt-0.5">{t('users.subtitle')}</p>
       </div>
 
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 mb-4 space-y-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-55">
+            <input
+              type="text"
+              value={searchDraft}
+              onChange={(e) => setSearchDraft(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && runSearch()}
+              placeholder={t('users.searchPlaceholder')}
+              className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-gray-900"
+            />
+          </div>
+
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setRoleDropdownOpen((prev) => !prev)}
+              className="text-sm border border-gray-300 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50"
+            >
+              {t('users.filterRole')}
+              {rolesDraft.size > 0 ? ` (${rolesDraft.size})` : ''}
+            </button>
+            {roleDropdownOpen && (
+              <div className="absolute z-10 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg p-2 space-y-1">
+                {ROLE_OPTIONS.map((role) => (
+                  <label
+                    key={role}
+                    className="flex items-center gap-2 text-sm text-gray-700 px-2 py-1 rounded hover:bg-gray-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={rolesDraft.has(role)}
+                      onChange={() => toggleRoleDraft(role)}
+                      className="rounded border-gray-300"
+                    />
+                    {t(`role.${role}`, { defaultValue: role })}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <select
+            value={statusDraft}
+            onChange={(e) => setStatusDraft(e.target.value as 'all' | 'active' | 'inactive')}
+            className="text-sm border border-gray-300 rounded-lg px-3 py-2 text-gray-700"
+          >
+            <option value="all">{t('users.filterStatus')}: {t('users.statusAll')}</option>
+            <option value="active">{t('users.filterStatus')}: {t('users.statusActive')}</option>
+            <option value="inactive">{t('users.filterStatus')}: {t('users.statusInactive')}</option>
+          </select>
+
+          <button
+            type="button"
+            onClick={runSearch}
+            className="text-sm bg-gray-900 text-white rounded-lg px-4 py-2 hover:bg-gray-800"
+          >
+            {t('users.search')}
+          </button>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-gray-100">
+          <span className="text-xs text-gray-500">{t('users.sortBy')}:</span>
+          {SORT_FIELDS.map((field) => (
+            <button
+              key={field}
+              type="button"
+              onClick={() => toggleSort(field)}
+              className={`text-xs px-2.5 py-1 rounded-full transition-colors ${
+                sortBy === field
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {t(`users.sort${field[0].toUpperCase()}${field.slice(1)}`)}
+              {sortBy === field && (sortDir === 'asc' ? ' ↑' : ' ↓')}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex gap-6">
         <div className="flex-1 space-y-3">
           {isLoading ? (
             <p className="text-sm text-gray-500">{t('users.loading')}</p>
+          ) : users.length === 0 ? (
+            <p className="text-sm text-gray-500">{t('users.noUsers')}</p>
           ) : (
-            users.filter((u: User) => u.id !== currentUser?.id).map((user: User) => (
+            users.map((user: User) => (
               <div
                 key={user.id}
                 className={`bg-white border rounded-2xl p-5 cursor-pointer transition-colors ${
@@ -158,6 +301,48 @@ export default function UserManagementPage() {
                 </div>
               </div>
             ))
+          )}
+
+          {!isLoading && users.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">{t('users.pageSize')}:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => changePageSize(Number(e.target.value))}
+                  className="text-xs border border-gray-300 rounded-lg px-2 py-1"
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                  <option value={-1}>{t('users.pageSizeAll')}</option>
+                </select>
+              </div>
+
+              {pageSize > 0 && (
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={page <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    className="text-xs px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
+                  >
+                    {t('users.pagePrev')}
+                  </button>
+                  <span className="text-xs text-gray-500">
+                    {t('users.pageOf', { page, totalPages })}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    className="text-xs px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
+                  >
+                    {t('users.pageNext')}
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
 

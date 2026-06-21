@@ -24,11 +24,65 @@ public class UsersController : ControllerBase
         _localizer = localizer;
     }
 
-    // GET /api/users — list all users
+    // GET /api/users — list users with search, role/status filters, sorting and paging
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(
+        string? search,
+        string? roles,
+        string? status,
+        string? sortBy = "name",
+        string? sortDir = "asc",
+        int page = 1,
+        int pageSize = 20)
     {
-        var users = await _userManager.Users
+        var currentUserId = _userManager.GetUserId(User);
+
+        var query = _userManager.Users.Where(u => u.Id != currentUserId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var pattern = $"%{search}%";
+            query = query.Where(u =>
+                EF.Functions.ILike(u.FirstName, pattern) ||
+                EF.Functions.ILike(u.LastName, pattern) ||
+                EF.Functions.ILike(u.Email!, pattern));
+        }
+
+        if (!string.IsNullOrWhiteSpace(roles))
+        {
+            var parsedRoles = roles
+                .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                .Select(r => Enum.TryParse<UserRole>(r, out var parsed) ? (UserRole?)parsed : null)
+                .Where(r => r.HasValue)
+                .Select(r => r!.Value)
+                .ToList();
+
+            if (parsedRoles.Count > 0)
+                query = query.Where(u => parsedRoles.Contains(u.Role));
+        }
+
+        if (status == "active")
+            query = query.Where(u => u.IsActive);
+        else if (status == "inactive")
+            query = query.Where(u => !u.IsActive);
+
+        var totalCount = await query.CountAsync();
+
+        var descending = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase);
+        query = sortBy switch
+        {
+            "surname" => descending ? query.OrderByDescending(u => u.LastName) : query.OrderBy(u => u.LastName),
+            "email" => descending ? query.OrderByDescending(u => u.Email) : query.OrderBy(u => u.Email),
+            "role" => descending ? query.OrderByDescending(u => u.Role) : query.OrderBy(u => u.Role),
+            "status" => descending ? query.OrderByDescending(u => u.IsActive) : query.OrderBy(u => u.IsActive),
+            _ => descending ? query.OrderByDescending(u => u.FirstName) : query.OrderBy(u => u.FirstName),
+        };
+
+        // pageSize <= 0 (e.g. -1) means "All" — skip paging entirely
+        if (pageSize > 0)
+            query = query.Skip((Math.Max(page, 1) - 1) * pageSize).Take(pageSize);
+
+        var users = await query
             .Select(u => new {
                 id = u.Id,
                 email = u.Email,
@@ -38,7 +92,7 @@ public class UsersController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(users);
+        return Ok(new { items = users, totalCount, page, pageSize });
     }
 
     // PUT /api/users/5/toggle-active — enable or disable a user
