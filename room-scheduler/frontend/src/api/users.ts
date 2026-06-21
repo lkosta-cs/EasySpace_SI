@@ -32,8 +32,41 @@ export interface UpdateMyProfilePayload {
   title?: string | null;
 }
 
+export interface UserListItem {
+  id: string;
+  email: string;
+  fullName: string;
+  isActive: boolean;
+  role: string;
+}
+
+export interface UsersQueryParams {
+  search?: string;
+  roles?: string[];
+  status?: 'active' | 'inactive';
+  sortBy?: 'name' | 'surname' | 'email' | 'role' | 'status';
+  sortDir?: 'asc' | 'desc';
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PagedUsers {
+  items: UserListItem[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
 export const usersApi = {
-  getAll: () => api.get('/api/users').then(r => r.data),
+  getAll: (params: UsersQueryParams = {}): Promise<PagedUsers> =>
+    api
+      .get('/api/users', {
+        params: {
+          ...params,
+          roles: params.roles?.length ? params.roles.join(',') : undefined,
+        },
+      })
+      .then(r => r.data),
   getById: (id: string): Promise<UserProfile> => api.get(`/api/users/${id}`).then(r => r.data),
   updateProfile: (id: string, payload: UpdateProfilePayload) =>  api.put(`/api/users/${id}/profile`, payload).then(r => r.data),
   getMyProfile: (): Promise<UserProfile> => api.get('/api/profile').then(r => r.data),
