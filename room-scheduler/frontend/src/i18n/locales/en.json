@@ -143,7 +143,13 @@
     "recurringCancels": "Yes — cancels whole series",
     "notes": "Notes",
     "cancelBooking": "Cancel booking",
-    "close": "Close"
+    "close": "Close",
+    "filterUpcoming": "Upcoming",
+    "filterPast": "Past",
+    "filterCancelled": "Cancelled",
+    "departments": "Departments",
+    "selectAll": "Select all",
+    "clearAll": "Clear all"
   },
   "myBookings": {
     "title": "My Bookings",

@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +27,28 @@ export default function MyBookingsPage() {
     queryFn: bookingsApi.getMine,
   });
 
+  const [statusFilters, setStatusFilters] = useState<Set<'upcoming' | 'past' | 'cancelled'>>(
+    new Set(['upcoming'])
+  );
+
+  const toggleStatusFilter = (filter: 'upcoming' | 'past' | 'cancelled') => {
+    setStatusFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(filter)) next.delete(filter);
+      else next.add(filter);
+      return next;
+    });
+  };
+
+  const filteredBookings = useMemo(() => {
+    const now = new Date();
+    return bookings.filter((b: Booking) => {
+      if (b.status === 'Cancelled') return statusFilters.has('cancelled');
+      const isPast = new Date(b.end) < now;
+      return statusFilters.has(isPast ? 'past' : 'upcoming');
+    });
+  }, [bookings, statusFilters]);
+
   const cancelMutation = useMutation({
     mutationFn: (id: number) => bookingsApi.cancel(id),
     onSuccess: () => {
@@ -42,16 +65,30 @@ export default function MyBookingsPage() {
         <p className="text-sm text-gray-500 mt-0.5">{t('myBookings.subtitle')}</p>
       </div>
 
+      <div className="flex gap-4 mb-4 flex-wrap">
+        {(['upcoming', 'past', 'cancelled'] as const).map((filter) => (
+          <label key={filter} className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={statusFilters.has(filter)}
+              onChange={() => toggleStatusFilter(filter)}
+              className="rounded border-gray-300"
+            />
+            {t(`calendar.filter${filter[0].toUpperCase()}${filter.slice(1)}`)}
+          </label>
+        ))}
+      </div>
+
       {isLoading ? (
         <p className="text-sm text-gray-500">{t('myBookings.loading')}</p>
-      ) : bookings.length === 0 ? (
+      ) : filteredBookings.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <p className="text-sm">{t('myBookings.noBookings')}</p>
           <p className="text-sm mt-1">{t('myBookings.goToCalendar')}</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {bookings.map((booking: Booking) => (
+          {filteredBookings.map((booking: Booking) => (
             <div
               key={booking.id}
               className="bg-white border border-gray-200 rounded-2xl p-5 flex items-start justify-between"
@@ -67,6 +104,11 @@ export default function MyBookingsPage() {
                   {booking.recurringGroupId && (
                     <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
                       {t('myBookings.recurring')}
+                    </span>
+                  )}
+                  {booking.status === 'Cancelled' && (
+                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                      {t('calendar.filterCancelled')}
                     </span>
                   )}
                 </div>

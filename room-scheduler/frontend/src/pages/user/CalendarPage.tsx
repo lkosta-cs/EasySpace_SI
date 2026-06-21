@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -27,7 +27,21 @@ interface Booking {
   occasionType: number;
   recurringGroupId?: string;
   isOwn: boolean;
+  departmentLabel?: string | null;
 }
+
+const DEPARTMENTS = [
+  'DEPARTMENT_CSY',
+  'DEPARTMENT_EL',
+  'DEPARTMENT_PE',
+  'DEPARTMENT_MA',
+  'DEPARTMENT_ME',
+  'DEPARTMENT_MI',
+  'DEPARTMENT_CSC',
+  'DEPARTMENT_TE',
+  'DEPARTMENT_TEE',
+  'DEPARTMENT_GE',
+] as const;
 
 interface Room {
   id: number;
@@ -51,6 +65,43 @@ export default function CalendarPage() {
   const [conflictDates, setConflictDates] = useState<string[]>([]);
   const [detailModal, setDetailModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [statusFilters, setStatusFilters] = useState<Set<'upcoming' | 'past' | 'cancelled'>>(
+    new Set(['upcoming'])
+  );
+
+  const toggleStatusFilter = (filter: 'upcoming' | 'past' | 'cancelled') => {
+    setStatusFilters((prev) => {
+      const next = new Set(prev);
+      if (next.has(filter)) next.delete(filter);
+      else next.add(filter);
+      return next;
+    });
+  };
+
+  const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(
+    new Set(DEPARTMENTS)
+  );
+  const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
+  const deptDropdownRef = useRef<HTMLDivElement>(null);
+
+  const toggleDepartment = (dept: string) => {
+    setSelectedDepartments((prev) => {
+      const next = new Set(prev);
+      if (next.has(dept)) next.delete(dept);
+      else next.add(dept);
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (deptDropdownRef.current && !deptDropdownRef.current.contains(e.target as Node)) {
+        setDeptDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
 
   const OCCASION_TYPES = [
     { value: 0, label: t('occasionType.0') },
@@ -86,6 +137,18 @@ export default function CalendarPage() {
 
   const getConfig = (occasionType: number): OccasionConfig | undefined =>
     configs.find((c: OccasionConfig) => c.occasionType === occasionType);
+
+  const filteredBookings = useMemo(() => {
+    const now = new Date();
+    return bookings.filter((b: Booking) => {
+      const statusOk = b.status === 'Cancelled'
+        ? statusFilters.has('cancelled')
+        : statusFilters.has(new Date(b.end) < now ? 'past' : 'upcoming');
+      if (!statusOk) return false;
+      if (!b.departmentLabel) return true;
+      return selectedDepartments.has(b.departmentLabel);
+    });
+  }, [bookings, statusFilters, selectedDepartments]);
 
   const availableOccasions = OCCASION_TYPES.filter(o => {
     if (user?.role === 'Assistant') return o.value === 2;
@@ -215,11 +278,68 @@ export default function CalendarPage() {
         </div>
       )}
 
+      <div className="flex gap-4 mb-4 flex-wrap items-start">
+        {(['upcoming', 'past', 'cancelled'] as const).map((filter) => (
+          <label key={filter} className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={statusFilters.has(filter)}
+              onChange={() => toggleStatusFilter(filter)}
+              className="rounded border-gray-300"
+            />
+            {t(`calendar.filter${filter[0].toUpperCase()}${filter.slice(1)}`)}
+          </label>
+        ))}
+
+        <div className="relative" ref={deptDropdownRef}>
+          <button
+            type="button"
+            onClick={() => setDeptDropdownOpen((open) => !open)}
+            className="text-xs text-gray-600 border border-gray-300 rounded-lg px-3 py-1 hover:bg-gray-50"
+          >
+            {t('calendar.departments')} ({selectedDepartments.size}/{DEPARTMENTS.length}) ▾
+          </button>
+          {deptDropdownOpen && (
+            <div className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-56">
+              <div className="flex justify-between mb-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedDepartments(new Set(DEPARTMENTS))}
+                  className="text-xs text-gray-500 hover:text-gray-900"
+                >
+                  {t('calendar.selectAll')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDepartments(new Set())}
+                  className="text-xs text-gray-500 hover:text-gray-900"
+                >
+                  {t('calendar.clearAll')}
+                </button>
+              </div>
+              <div className="space-y-1.5 max-h-56 overflow-y-auto">
+                {DEPARTMENTS.map((dept) => (
+                  <label key={dept} className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedDepartments.has(dept)}
+                      onChange={() => toggleDepartment(dept)}
+                      className="rounded border-gray-300"
+                    />
+                    {t(`department.${dept}`)}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="bg-white border border-gray-200 rounded-2xl p-4">
         <FullCalendar
           plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
-          selectable={true}
+          selectable={user?.role !== 'User'}
           selectMirror={true}
           nowIndicator={true}
           allDaySlot={false}
@@ -230,20 +350,20 @@ export default function CalendarPage() {
             center: 'title',
             right: 'dayGridMonth,timeGridWeek,timeGridDay',
           }}
-          events={bookings
-            .filter((b: Booking) => b.status !== 'Cancelled' && b.status !== 'Rejected')
-            .map((b: Booking) => {
-              const config = getConfig(b.occasionType);
-              return {
-                id: String(b.id),
-                title: `${b.roomName} — ${b.userName}`,
-                start: b.start,
-                end: b.end,
-                backgroundColor: config?.color ?? '#111827',
-                borderColor: config?.color ?? '#111827',
-                textColor: '#ffffff',
-              };
-            })}
+          events={filteredBookings.map((b: Booking) => {
+            const isCancelled = b.status === 'Cancelled';
+            const config = getConfig(b.occasionType);
+            const color = isCancelled ? '#9ca3af' : config?.color ?? '#111827';
+            return {
+              id: String(b.id),
+              title: `${b.roomName} — ${b.userName}`,
+              start: b.start,
+              end: b.end,
+              backgroundColor: color,
+              borderColor: color,
+              textColor: '#ffffff',
+            };
+          })}
           select={onSelect}
           selectAllow={(selectInfo) => selectInfo.start >= new Date()}
           eventClick={onEventClick}
