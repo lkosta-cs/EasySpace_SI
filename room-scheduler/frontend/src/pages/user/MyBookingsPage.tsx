@@ -11,7 +11,7 @@ interface Booking {
   start: string;
   end: string;
   notes?: string;
-  status: string;
+  isCancelled: boolean;
   occasionType: number;
   occasionTypeLabel: string;
   recurringGroupId?: string;
@@ -43,7 +43,7 @@ export default function MyBookingsPage() {
   const filteredBookings = useMemo(() => {
     const now = new Date();
     return bookings.filter((b: Booking) => {
-      if (b.status === 'Cancelled') return statusFilters.has('cancelled');
+      if (b.isCancelled) return statusFilters.has('cancelled');
       const isPast = new Date(b.end) < now;
       return statusFilters.has(isPast ? 'past' : 'upcoming');
     });
@@ -106,7 +106,7 @@ export default function MyBookingsPage() {
                       {t('myBookings.recurring')}
                     </span>
                   )}
-                  {booking.status === 'Cancelled' && (
+                  {booking.isCancelled && (
                     <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
                       {t('calendar.filterCancelled')}
                     </span>
@@ -123,7 +123,7 @@ export default function MyBookingsPage() {
                   <p className="text-xs text-gray-400 mt-1 italic">{booking.notes}</p>
                 )}
               </div>
-              {booking.status === 'Confirmed' && (
+              {!booking.isCancelled && (
                 <button
                   onClick={() => cancelMutation.mutate(booking.id)}
                   className="text-sm text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"

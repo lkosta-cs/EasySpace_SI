@@ -162,7 +162,6 @@
   },
   "status": {
     "Confirmed": "Potvrđena",
-    "Rejected": "Odbijena",
     "Cancelled": "Otkazana"
   },
   "users": {

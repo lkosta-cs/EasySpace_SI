@@ -108,10 +108,30 @@ builder.Services.AddCors(opt =>
 var app = builder.Build();
 
 // Auto-migrate and seed on startup
+// Auto-migrate and selective seed on startup
 using (var scope = app.Services.CreateScope()) {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
-    await DbSeeder.SeedAsync(scope.ServiceProvider);
+    var services = scope.ServiceProvider;
+    try 
+    {
+        var db = services.GetRequiredService<AppDbContext>();
+        
+        // Primeni sve migracije automatski
+        db.Database.Migrate();
+
+        // 1. Pokreni CORE seeder (SuperAdmin i boje za kalendar) - radi UVEK
+        await CoreDbSeeder.SeedCoreAsync(services);
+
+        // 2. Pokreni DEV/TEST seeder sa lažnim podacima SAMO u Development okruženju
+        if (builder.Environment.IsDevelopment())
+        {
+            await DevTestDbSeeder.SeedTestDataAsync(services);
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Došlo je do greške prilikom migracije ili seedovanja baze podataka.");
+    }
 }
 
 app.UseSwagger();
