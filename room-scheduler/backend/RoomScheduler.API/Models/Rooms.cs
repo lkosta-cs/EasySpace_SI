@@ -9,5 +9,4 @@ public class Room
     public bool IsActive { get; set; } = true;
     public ICollection<SoftwarePackage> SoftwarePackages { get; set; } = [];
     public ICollection<Booking> Bookings { get; set; } = [];
-    public ICollection<RoomPermission> Permissions { get; set; } = [];
 }

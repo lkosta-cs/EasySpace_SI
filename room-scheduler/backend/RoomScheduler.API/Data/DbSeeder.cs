@@ -26,6 +26,37 @@ public static class DbSeeder
             };
             await userManager.CreateAsync(superAdmin, "SuperAdmin123!");
         }
+        // Primer dodavanja običnog studenta/korisnika
+        if (!await userManager.Users.AnyAsync(u => u.Email == "student@roomscheduler.local"))
+        {
+            var student = new ApplicationUser
+            {
+                UserName = "student@roomscheduler.local",
+                Email = "student@roomscheduler.local",
+                FirstName = "Luka",
+                LastName = "Kostadinovic",
+                Role = UserRole.User, // Tvoja enum uloga za običnog studenta
+                EmailConfirmed = true
+            };
+            await userManager.CreateAsync(student, "Student123!");
+        }
+
+        // Primer dodavanja profesora
+        if (!await userManager.Users.AnyAsync(u => u.Email == "profesor@roomscheduler.local"))
+        {
+            var profesor = new ApplicationUser
+            {
+                UserName = "profesor@roomscheduler.local",
+                Email = "profesor@roomscheduler.local",
+                FirstName = "Petar",
+                LastName = "Petrović",
+                Role = UserRole.Professor,
+                EmailConfirmed = true
+            };
+            await userManager.CreateAsync(profesor, "Profesor123!");
+        }
+
+
 
         // Seed OccasionTypeConfigs
         if (!await db.OccasionTypeConfigs.AnyAsync())

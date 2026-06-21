@@ -143,7 +143,13 @@
     "recurringCancels": "Da — otkazuje celu seriju",
     "notes": "Napomena",
     "cancelBooking": "Otkaži rezervaciju",
-    "close": "Zatvori"
+    "close": "Zatvori",
+    "filterUpcoming": "Naredne",
+    "filterPast": "Prošle",
+    "filterCancelled": "Otkazane",
+    "departments": "Odseci",
+    "selectAll": "Izaberi sve",
+    "clearAll": "Ukloni sve"
   },
   "myBookings": {
     "title": "Moje rezervacije",

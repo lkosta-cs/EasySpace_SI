@@ -294,34 +294,6 @@ namespace RoomScheduler.API.Migrations
                     b.ToTable("Rooms");
                 });
 
-            modelBuilder.Entity("RoomScheduler.API.Models.RoomPermission", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Level")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("RoomId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RoomId");
-
-                    b.HasIndex("UserId", "RoomId")
-                        .IsUnique();
-
-                    b.ToTable("RoomPermissions");
-                });
-
             modelBuilder.Entity("RoomScheduler.API.Models.SoftwarePackage", b =>
                 {
                     b.Property<int>("Id")
@@ -390,25 +362,6 @@ namespace RoomScheduler.API.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("RoomScheduler.API.Models.RoomPermission", b =>
-                {
-                    b.HasOne("RoomScheduler.API.Models.Room", "Room")
-                        .WithMany("Permissions")
-                        .HasForeignKey("RoomId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("RoomScheduler.API.Models.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Room");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("RoomScheduler.API.Models.SoftwarePackage", b =>
                 {
                     b.HasOne("RoomScheduler.API.Models.Room", "Room")
@@ -423,8 +376,6 @@ namespace RoomScheduler.API.Migrations
             modelBuilder.Entity("RoomScheduler.API.Models.Room", b =>
                 {
                     b.Navigation("Bookings");
-
-                    b.Navigation("Permissions");
 
                     b.Navigation("SoftwarePackages");
                 });

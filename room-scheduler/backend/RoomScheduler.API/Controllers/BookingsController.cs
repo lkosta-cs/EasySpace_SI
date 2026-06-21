@@ -34,13 +34,11 @@ public class BookingsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);// nije jasno
 
-        var bookings = await _db.Bookings
-            .Include(b => b.Room)
-            .Include(b => b.User)
-            .Where(b => b.Status != BookingStatus.Cancelled &&
-                       b.Status != BookingStatus.Rejected)
+        var bookings = await _db.Bookings// nije jasno
+            .Include(b => b.Room)// Spoji sa tabelom ROOMS (Eager Loading)
+            .Include(b => b.User)// Spiji sa tabelom AspNetUsers (Eager Loading)
             .Select(b => new {
                 id = b.Id,
                 roomId = b.RoomId,
@@ -54,9 +52,10 @@ public class BookingsController : ControllerBase
                 occasionType = b.OccasionType,
                 occasionTypeLabel = b.OccasionType.ToString(),
                 recurringGroupId = b.RecurringGroupId,
-                isOwn = b.UserId == currentUserId
+                isOwn = b.UserId == currentUserId,
+                departmentLabel = b.User.Department.HasValue ? b.User.Department.Value.ToString() : null
             })
-            .ToListAsync();
+            .ToListAsync();// Deferred execution tek ovde
 
         return Ok(bookings);
     }
@@ -93,10 +92,12 @@ public class BookingsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateBookingDto dto)
     {
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var isAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);// nije jasno
         var isProfessor = User.IsInRole("Professor");
         var isAssistant = User.IsInRole("Assistant");
+
+        if (User.IsInRole("User"))
+            return Forbid();
 
         // Role-based occasion type restrictions
         if (isAssistant &&
@@ -105,19 +106,7 @@ public class BookingsController : ControllerBase
 
         if (isProfessor &&
             dto.OccasionType == OccasionType.LabVezbe)
-            return Forbid();
-
-        // Check room permission
-        if (!isAdmin)
-        {
-            var permission = await _db.RoomPermissions
-                .FirstOrDefaultAsync(p =>
-                    p.UserId == currentUserId &&
-                    p.RoomId == dto.RoomId &&
-                    p.Level == PermissionLevel.CanBook);
-
-            if (permission == null) return Forbid();
-        }
+            return Forbid();   
 
         // Check room exists
         var room = await _db.Rooms.FindAsync(dto.RoomId);
@@ -141,7 +130,7 @@ public class BookingsController : ControllerBase
                 b.Start < end &&
                 b.End > start);
 
-            if (conflict) conflictingDates.Add(start);
+            if (conflict) conflictingDates.Add(start);// nije jasno
         }
 
         if (conflictingDates.Count > 0)
@@ -246,14 +235,14 @@ public class BookingsController : ControllerBase
         while (true)
         {
             current = pattern switch {
-                RecurrencePattern.Weekly => current.AddDays(7),
-                RecurrencePattern.BiWeekly => current.AddDays(14),
-                RecurrencePattern.Monthly => current.AddMonths(1),
-                _ => limit.AddDays(1) // exit
+                RecurrencePattern.Weekly => current.AddDays(7), // nije jasno
+                RecurrencePattern.BiWeekly => current.AddDays(14),// nije jasno
+                RecurrencePattern.Monthly => current.AddMonths(1),// nije jasno
+                _ => limit.AddDays(1) // exit // nije jasno
             };
 
-            if (current > limit) break;
-            dates.Add((current, current + duration));
+            if (current > limit) break;// nije jasno
+            dates.Add((current, current + duration));// nije jasno
         }
 
         return dates;
