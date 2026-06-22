@@ -150,10 +150,11 @@ export default function AdminCalendarPage() {
     { value: 2, label: t('occasionType.2') },
   ];
 
-  const { data: bookings = [] } = useQuery({
+  const { data: bookingsData } = useQuery({
     queryKey: ['all-bookings'],
-    queryFn: bookingsApi.getAll,
+    queryFn: () => bookingsApi.getAll({ pageSize: -1 }),
   });
+  const bookings = bookingsData?.items ?? [];
 
   const { data: rooms = [] } = useQuery({
     queryKey: ['rooms'],

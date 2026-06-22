@@ -33,15 +33,49 @@
             _logger = logger;
         }
 
-        // GET /api/bookings
+        // GET /api/bookings — filterable, sortable, paged list of every user's bookings
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+            string? roomName,
+            string? description,
+            string? occasionType,
+            string? status,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? userId,
+            string? sortBy = "date",
+            string? sortDir = "asc",
+            int page = 1,
+            int pageSize = 20)
         {
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);// nije jasno
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            var bookings = await _db.Bookings// nije jasno
-                .Include(b => b.Room)// Spoji sa tabelom ROOMS (Eager Loading)
-                .Include(b => b.User)// Spiji sa tabelom AspNetUsers (Eager Loading)
+            var query = _db.Bookings
+                .Include(b => b.Room)
+                .Include(b => b.User)
+                .AsQueryable();
+
+            query = ApplyCommonFilters(query, roomName, description, occasionType, status, startDate, endDate);
+
+            if (!string.IsNullOrWhiteSpace(userId))
+                query = query.Where(b => b.UserId == userId);
+
+            var totalCount = await query.CountAsync();
+
+            var descending = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase);
+            query = sortBy switch
+            {
+                "room" => descending ? query.OrderByDescending(b => b.Room.Name) : query.OrderBy(b => b.Room.Name),
+                "user" => descending ? query.OrderByDescending(b => b.User.FullName) : query.OrderBy(b => b.User.FullName),
+                "status" => descending ? query.OrderByDescending(b => b.IsCancelled) : query.OrderBy(b => b.IsCancelled),
+                _ => descending ? query.OrderByDescending(b => b.Start) : query.OrderBy(b => b.Start),
+            };
+
+            // pageSize <= 0 (e.g. -1) means "All" — skip paging entirely
+            if (pageSize > 0)
+                query = query.Skip((Math.Max(page, 1) - 1) * pageSize).Take(pageSize);
+
+            var bookings = await query
                 .Select(b => new {
                     id = b.Id,
                     roomId = b.RoomId,
@@ -58,21 +92,49 @@
                     isOwn = b.UserId == currentUserId,
                     departmentLabel = b.User.Department.HasValue ? b.User.Department.Value.ToString() : null
                 })
-                .ToListAsync();// Deferred execution tek ovde
+                .ToListAsync();
 
-            return Ok(bookings);
+            return Ok(new { items = bookings, totalCount, page, pageSize });
         }
 
-        // GET /api/bookings/my
+        // GET /api/bookings/my — filterable, sortable, paged list of the current user's own bookings
         [HttpGet("my")]
-        public async Task<IActionResult> GetMine()
+        public async Task<IActionResult> GetMine(
+            string? roomName,
+            string? description,
+            string? occasionType,
+            string? status,
+            DateTime? startDate,
+            DateTime? endDate,
+            string? sortBy = "date",
+            string? sortDir = "asc",
+            int page = 1,
+            int pageSize = 20)
         {
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            var bookings = await _db.Bookings
+            var query = _db.Bookings
                 .Include(b => b.Room)
                 .Where(b => b.UserId == currentUserId)
-                .OrderByDescending(b => b.Start)
+                .AsQueryable();
+
+            query = ApplyCommonFilters(query, roomName, description, occasionType, status, startDate, endDate);
+
+            var totalCount = await query.CountAsync();
+
+            var descending = string.Equals(sortDir, "desc", StringComparison.OrdinalIgnoreCase);
+            query = sortBy switch
+            {
+                "room" => descending ? query.OrderByDescending(b => b.Room.Name) : query.OrderBy(b => b.Room.Name),
+                "status" => descending ? query.OrderByDescending(b => b.IsCancelled) : query.OrderBy(b => b.IsCancelled),
+                _ => descending ? query.OrderByDescending(b => b.Start) : query.OrderBy(b => b.Start),
+            };
+
+            // pageSize <= 0 (e.g. -1) means "All" — skip paging entirely
+            if (pageSize > 0)
+                query = query.Skip((Math.Max(page, 1) - 1) * pageSize).Take(pageSize);
+
+            var bookings = await query
                 .Select(b => new {
                     id = b.Id,
                     roomId = b.RoomId,
@@ -88,7 +150,48 @@
                 })
                 .ToListAsync();
 
-            return Ok(bookings);
+            return Ok(new { items = bookings, totalCount, page, pageSize });
+        }
+
+        // Helper — shared room name / description / occasion type / status / date-range filters
+        // used by both GetAll and GetMine
+        private static IQueryable<Booking> ApplyCommonFilters(
+            IQueryable<Booking> query,
+            string? roomName,
+            string? description,
+            string? occasionType,
+            string? status,
+            DateTime? startDate,
+            DateTime? endDate)
+        {
+            if (!string.IsNullOrWhiteSpace(roomName))
+            {
+                var pattern = $"%{roomName}%";
+                query = query.Where(b => EF.Functions.ILike(b.Room.Name, pattern));
+            }
+
+            if (!string.IsNullOrWhiteSpace(description))
+            {
+                var pattern = $"%{description}%";
+                query = query.Where(b => b.Notes != null && EF.Functions.ILike(b.Notes, pattern));
+            }
+
+            if (!string.IsNullOrWhiteSpace(occasionType) &&
+                Enum.TryParse<OccasionType>(occasionType, out var parsedOccasionType))
+                query = query.Where(b => b.OccasionType == parsedOccasionType);
+
+            if (status == "active")
+                query = query.Where(b => !b.IsCancelled);
+            else if (status == "cancelled")
+                query = query.Where(b => b.IsCancelled);
+
+            if (startDate.HasValue)
+                query = query.Where(b => b.Start >= startDate.Value);
+
+            if (endDate.HasValue)
+                query = query.Where(b => b.Start < endDate.Value.Date.AddDays(1));
+
+            return query;
         }
 
         // POST /api/bookings
