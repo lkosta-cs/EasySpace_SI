@@ -4,16 +4,15 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { bookingsApi } from '../../api/bookings';
+import { bookingsApi, type EditScope } from '../../api/bookings';
 import { roomsApi } from '../../api/rooms';
 import { occasionConfigApi } from '../../api/occasionConfig';
 import { useAuthStore } from '../../stores/authStore';
 import { format } from 'date-fns';
+import BookingFormModal from '../../components/BookingFormModal';
+import RecurringScopeModal from '../../components/RecurringScopeModal';
 
 interface Booking {
   id: number;
@@ -61,9 +60,11 @@ export default function CalendarPage() {
   const qc = useQueryClient();
   const { user } = useAuthStore();
   const { t } = useTranslation();
+  const isStaff = user?.role === 'Admin' || user?.role === 'SuperAdmin';
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
-  const [conflictDates, setConflictDates] = useState<string[]>([]);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editBookingId, setEditBookingId] = useState<number | null>(null);
   const [detailModal, setDetailModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [showCancelled, setShowCancelled] = useState(false);
@@ -151,17 +152,6 @@ export default function CalendarPage() {
     { value: 2, label: t('occasionType.2') },
   ];
 
-  const schema = z.object({
-    roomId: z.coerce.number().min(1, t('validation.roomRequired')),
-    notes: z.string().optional(),
-    occasionType: z.coerce.number().min(0),
-    recurrencePattern: z.string().optional(),
-    recurrenceEndDate: z.string().optional(),
-    startTime: z.string(),
-    endTime: z.string(),
-  });
-  type FormData = z.infer<typeof schema>;
-
   const { data: bookings = [] } = useQuery({
     queryKey: ['bookings'],
     queryFn: bookingsApi.getAll,
@@ -213,88 +203,28 @@ export default function CalendarPage() {
     });
   }, [bookings, showCancelled, selectedOccasionTypes, selectedUserIds, selectedRoomIds, selectedDepartments]);
 
-  const availableOccasions = OCCASION_TYPES.filter(o => {
-    if (user?.role === 'Assistant') return o.value === 2;
-    if (user?.role === 'Professor') return o.value !== 2;
-    return true;
-  });
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useForm<FormData, unknown, FormData>({
-    resolver: zodResolver(schema) as any,
-    defaultValues: {
-      occasionType: availableOccasions[0]?.value ?? 0,
-      recurrencePattern: '',
-    }
-  });
-
-  const recurrencePattern = watch('recurrencePattern');
-
-  const createBooking = useMutation({
-    mutationFn: (data: FormData) => {
-      const baseDate = format(selectedSlot!.start, 'yyyy-MM-dd');
-      const start = new Date(`${baseDate}T${data.startTime}`);
-      const end = new Date(`${baseDate}T${data.endTime}`);
-
-      return bookingsApi.create({
-        roomId: data.roomId,
-        start: start.toISOString(),
-        end: end.toISOString(),
-        occasionType: Number(data.occasionType),
-        notes: data.notes,
-        recurrencePattern: data.recurrencePattern
-          ? Number(data.recurrencePattern)
-          : null,
-        recurrenceEndDate: data.recurrenceEndDate
-          ? new Date(data.recurrenceEndDate).toISOString()
-          : null,
-      });
-    },
-    onSuccess: (result) => {
-      qc.invalidateQueries({ queryKey: ['bookings'] });
-      toast.success(
-        result.count > 1
-          ? t('toast.bookingsCreated', { count: result.count })
-          : t('toast.bookingCreated')
-      );
-      setModalOpen(false);
-      setConflictDates([]);
-      reset();
-    },
-    onError: (err: any) => {
-      const data = err?.response?.data;
-      if (data?.conflictingDates) {
-        setConflictDates(data.conflictingDates);
-        toast.error(t('toast.conflictsFound'));
-      } else {
-        toast.error(t('toast.bookingFailed'));
-      }
-    },
-  });
+  const [scopePrompt, setScopePrompt] = useState<'cancel' | 'restore' | null>(null);
 
   const cancelMutation = useMutation({
-    mutationFn: (id: number) => bookingsApi.cancel(id),
+    mutationFn: ({ id, scope }: { id: number; scope: EditScope }) => bookingsApi.cancel(id, scope),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bookings'] });
       toast.success(t('toast.bookingCancelled'));
       setDetailModal(false);
       setSelectedBooking(null);
+      setScopePrompt(null);
     },
     onError: () => toast.error(t('toast.cancelFailed')),
   });
 
   const restoreMutation = useMutation({
-    mutationFn: (id: number) => bookingsApi.restore(id),
+    mutationFn: ({ id, scope }: { id: number; scope: EditScope }) => bookingsApi.restore(id, scope),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bookings'] });
       toast.success(t('toast.bookingRestored'));
       setDetailModal(false);
       setSelectedBooking(null);
+      setScopePrompt(null);
     },
     onError: (err: any) => {
       toast.error(
@@ -304,6 +234,24 @@ export default function CalendarPage() {
       );
     },
   });
+
+  const requestCancel = () => {
+    if (!selectedBooking) return;
+    if (selectedBooking.recurringGroupId) setScopePrompt('cancel');
+    else cancelMutation.mutate({ id: selectedBooking.id, scope: 'single' });
+  };
+
+  const requestRestore = () => {
+    if (!selectedBooking) return;
+    if (selectedBooking.recurringGroupId) setScopePrompt('restore');
+    else restoreMutation.mutate({ id: selectedBooking.id, scope: 'single' });
+  };
+
+  const confirmScope = (scope: EditScope) => {
+    if (!selectedBooking || !scopePrompt) return;
+    if (scopePrompt === 'cancel') cancelMutation.mutate({ id: selectedBooking.id, scope });
+    else restoreMutation.mutate({ id: selectedBooking.id, scope });
+  };
 
   const onEventClick = (info: any) => {
     const booking = bookings.find((b: Booking) => String(b.id) === info.event.id);
@@ -320,21 +268,23 @@ export default function CalendarPage() {
 
   const onSelect = (info: { start: Date; end: Date }) => {
     setSelectedSlot({ start: info.start, end: info.end });
-    setConflictDates([]);
-    reset({
-      occasionType: availableOccasions[0]?.value ?? 0,
-      recurrencePattern: '',
-      startTime: format(info.start, 'HH:mm'),
-      endTime: format(info.end, 'HH:mm'),
-    });
     setModalOpen(true);
   };
 
   const closeModal = () => {
     setModalOpen(false);
     setSelectedSlot(null);
-    setConflictDates([]);
-    reset();
+  };
+
+  const openEditModal = (id: number) => {
+    setEditBookingId(id);
+    setEditModalOpen(true);
+    closeDetailModal();
+  };
+
+  const closeEditModal = () => {
+    setEditModalOpen(false);
+    setEditBookingId(null);
   };
 
   return (
@@ -577,153 +527,21 @@ export default function CalendarPage() {
         />
       </div>
 
-      {modalOpen && selectedSlot && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-medium text-gray-900 mb-1">
-              {t('calendar.bookRoom')}
-            </h3>
-            <p className="text-sm text-gray-500 mb-5">
-              {format(selectedSlot.start, 'EEEE, MMMM d yyyy')}
-            </p>
+      <BookingFormModal
+        mode="create"
+        open={modalOpen && !!selectedSlot}
+        onClose={closeModal}
+        initialStart={selectedSlot?.start}
+        initialEnd={selectedSlot?.end}
+      />
 
-            {conflictDates.length > 0 && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-                <p className="text-sm font-medium text-red-700 mb-1">
-                  {t('calendar.conflictsFoundOn')}
-                </p>
-                <ul className="text-xs text-red-600 space-y-0.5">
-                  {conflictDates.map((d, i) => (
-                    <li key={i}>• {d}</li>
-                  ))}
-                </ul>
-                <p className="text-xs text-red-500 mt-2">
-                  {t('calendar.adjustTime')}
-                </p>
-              </div>
-            )}
+      <BookingFormModal
+        mode="edit"
+        open={editModalOpen && editBookingId != null}
+        onClose={closeEditModal}
+        bookingId={editBookingId ?? undefined}
+      />
 
-            <form
-              onSubmit={handleSubmit((d) => createBooking.mutate(d))}
-              className="space-y-4"
-            >
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('calendar.startTime')}
-                  </label>
-                  <input
-                    {...register('startTime')}
-                    type="time"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('calendar.endTime')}
-                  </label>
-                  <input
-                    {...register('endTime')}
-                    type="time"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('calendar.occasionType')}
-                </label>
-                <select
-                  {...register('occasionType')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-                >
-                  {availableOccasions.map(o => (
-                    <option key={o.value} value={o.value}>{o.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('calendar.room')}
-                </label>
-                <select
-                  {...register('roomId')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-                >
-                  <option value="">{t('calendar.selectRoom')}</option>
-                  {rooms.map((room: Room) => (
-                    <option key={room.id} value={room.id}>
-                      {room.name} ({t('rooms.seatsLabel', { count: room.seats })})
-                    </option>
-                  ))}
-                </select>
-                {errors.roomId && (
-                  <p className="text-red-500 text-xs mt-1">{errors.roomId.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('calendar.repeat')}
-                </label>
-                <select
-                  {...register('recurrencePattern')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-                >
-                  <option value="">{t('calendar.doesNotRepeat')}</option>
-                  <option value="0">{t('calendar.everyWeek')}</option>
-                  <option value="1">{t('calendar.every2Weeks')}</option>
-                  <option value="2">{t('calendar.everyMonth')}</option>
-                </select>
-              </div>
-
-              {recurrencePattern && recurrencePattern !== '' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {t('calendar.repeatUntil')}
-                  </label>
-                  <input
-                    {...register('recurrenceEndDate')}
-                    type="date"
-                    min={format(selectedSlot.start, 'yyyy-MM-dd')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('form.notes')}
-                </label>
-                <input
-                  {...register('notes')}
-                  placeholder={t('form.notesPlaceholder')}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 bg-gray-900 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors disabled:opacity-50"
-                >
-                  {isSubmitting ? t('calendar.booking') : t('calendar.bookRoomBtn')}
-                </button>
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="flex-1 py-2 px-4 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
-                >
-                  {t('calendar.cancel')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
       {detailModal && selectedBooking && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4">
@@ -774,10 +592,18 @@ export default function CalendarPage() {
             </div>
 
             <div className="flex gap-3">
-              {selectedBooking.isOwn && (
+              {(selectedBooking.isOwn || isStaff) && !selectedBooking.isCancelled && (
+                <button
+                  onClick={() => openEditModal(selectedBooking.id)}
+                  className="flex-1 bg-gray-900 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
+                >
+                  {t('calendar.editBooking')}
+                </button>
+              )}
+              {(selectedBooking.isOwn || isStaff) && (
                 selectedBooking.isCancelled ? (
                   <button
-                    onClick={() => restoreMutation.mutate(selectedBooking.id)}
+                    onClick={requestRestore}
                     disabled={restoreMutation.isPending}
                     className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors disabled:opacity-50"
                   >
@@ -785,7 +611,7 @@ export default function CalendarPage() {
                   </button>
                 ) : (
                   <button
-                    onClick={() => cancelMutation.mutate(selectedBooking.id)}
+                    onClick={requestCancel}
                     disabled={cancelMutation.isPending}
                     className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
                   >
@@ -803,6 +629,17 @@ export default function CalendarPage() {
           </div>
         </div>
       )}
+
+      <RecurringScopeModal
+        open={scopePrompt != null}
+        title={scopePrompt === 'cancel' ? t('calendar.cancelBooking') : t('calendar.restoreBooking')}
+        confirmLabel={scopePrompt === 'cancel' ? t('calendar.cancelBooking') : t('calendar.restoreBooking')}
+        confirmClassName={scopePrompt === 'cancel' ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-green-600 text-white hover:bg-green-700'}
+        defaultScope={scopePrompt === 'cancel' ? 'future' : 'single'}
+        isPending={cancelMutation.isPending || restoreMutation.isPending}
+        onConfirm={confirmScope}
+        onClose={() => setScopePrompt(null)}
+      />
     </div>
   );
 }

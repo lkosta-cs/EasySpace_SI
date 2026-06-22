@@ -2,8 +2,10 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { bookingsApi } from '../../api/bookings';
+import { bookingsApi, type EditScope } from '../../api/bookings';
 import { format } from 'date-fns';
+import BookingFormModal from '../../components/BookingFormModal';
+import RecurringScopeModal from '../../components/RecurringScopeModal';
 
 interface Booking {
   id: number;
@@ -13,7 +15,10 @@ interface Booking {
   end: string;
   notes?: string;
   isCancelled: boolean;
+  occasionType: number;
+  occasionTypeLabel: string;
   isOwn: boolean;
+  recurringGroupId?: string;
 }
 
 export default function BookingsPage() {
@@ -28,6 +33,9 @@ export default function BookingsPage() {
   const [statusFilters, setStatusFilters] = useState<Set<'upcoming' | 'past' | 'cancelled'>>(
     new Set(['upcoming'])
   );
+
+  const [editBookingId, setEditBookingId] = useState<number | null>(null);
+  const [scopePrompt, setScopePrompt] = useState<{ booking: Booking; action: 'cancel' | 'restore' } | null>(null);
 
   const toggleStatusFilter = (filter: 'upcoming' | 'past' | 'cancelled') => {
     setStatusFilters((prev) => {
@@ -48,19 +56,21 @@ export default function BookingsPage() {
   }, [bookings, statusFilters]);
 
   const cancelMutation = useMutation({
-    mutationFn: (id: number) => bookingsApi.cancel(id),
+    mutationFn: ({ id, scope }: { id: number; scope: EditScope }) => bookingsApi.cancel(id, scope),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['all-bookings'] });
       toast.success(t('toast.bookingCancelled'));
+      setScopePrompt(null);
     },
     onError: () => toast.error(t('toast.cancelFailed')),
   });
 
   const restoreMutation = useMutation({
-    mutationFn: (id: number) => bookingsApi.restore(id),
+    mutationFn: ({ id, scope }: { id: number; scope: EditScope }) => bookingsApi.restore(id, scope),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['all-bookings'] });
       toast.success(t('toast.bookingRestored'));
+      setScopePrompt(null);
     },
     onError: (err: any) => {
       toast.error(
@@ -70,6 +80,23 @@ export default function BookingsPage() {
       );
     },
   });
+
+  const requestCancel = (booking: Booking) => {
+    if (booking.recurringGroupId) setScopePrompt({ booking, action: 'cancel' });
+    else cancelMutation.mutate({ id: booking.id, scope: 'single' });
+  };
+
+  const requestRestore = (booking: Booking) => {
+    if (booking.recurringGroupId) setScopePrompt({ booking, action: 'restore' });
+    else restoreMutation.mutate({ id: booking.id, scope: 'single' });
+  };
+
+  const confirmScope = (scope: EditScope) => {
+    if (!scopePrompt) return;
+    const { booking, action } = scopePrompt;
+    if (action === 'cancel') cancelMutation.mutate({ id: booking.id, scope });
+    else restoreMutation.mutate({ id: booking.id, scope });
+  };
 
   return (
     <div>
@@ -111,6 +138,14 @@ export default function BookingsPage() {
                   <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                     {booking.userName}
                   </span>
+                  <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
+                    {booking.occasionTypeLabel}
+                  </span>
+                  {booking.recurringGroupId && (
+                    <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
+                      {t('bookings.recurring')}
+                    </span>
+                  )}
                   {booking.isCancelled && (
                     <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
                       {t('status.Cancelled')}
@@ -128,25 +163,53 @@ export default function BookingsPage() {
                   <p className="text-xs text-gray-400 mt-1 italic">{booking.notes}</p>
                 )}
               </div>
-              {booking.isCancelled ? (
-                <button
-                  onClick={() => restoreMutation.mutate(booking.id)}
-                  className="text-sm text-green-600 hover:text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors"
-                >
-                  {t('bookings.restore')}
-                </button>
-              ) : (
-                <button
-                  onClick={() => cancelMutation.mutate(booking.id)}
-                  className="text-sm text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                >
-                  {t('bookings.cancel')}
-                </button>
-              )}
+              <div className="flex gap-2">
+                {!booking.isCancelled && (
+                  <button
+                    onClick={() => setEditBookingId(booking.id)}
+                    className="text-sm text-gray-700 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    {t('bookings.edit')}
+                  </button>
+                )}
+                {booking.isCancelled ? (
+                  <button
+                    onClick={() => requestRestore(booking)}
+                    className="text-sm text-green-600 hover:text-green-700 px-3 py-1.5 rounded-lg hover:bg-green-50 transition-colors"
+                  >
+                    {t('bookings.restore')}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => requestCancel(booking)}
+                    className="text-sm text-red-600 hover:text-red-700 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    {t('bookings.cancel')}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
       )}
+
+      <BookingFormModal
+        mode="edit"
+        open={editBookingId != null}
+        onClose={() => setEditBookingId(null)}
+        bookingId={editBookingId ?? undefined}
+      />
+
+      <RecurringScopeModal
+        open={scopePrompt != null}
+        title={scopePrompt?.action === 'cancel' ? t('bookings.cancel') : t('bookings.restore')}
+        confirmLabel={scopePrompt?.action === 'cancel' ? t('bookings.cancel') : t('bookings.restore')}
+        confirmClassName={scopePrompt?.action === 'cancel' ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-green-600 text-white hover:bg-green-700'}
+        defaultScope={scopePrompt?.action === 'cancel' ? 'future' : 'single'}
+        isPending={cancelMutation.isPending || restoreMutation.isPending}
+        onConfirm={confirmScope}
+        onClose={() => setScopePrompt(null)}
+      />
     </div>
   );
 }

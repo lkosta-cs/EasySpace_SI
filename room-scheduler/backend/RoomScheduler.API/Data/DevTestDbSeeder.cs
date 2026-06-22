@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using RoomScheduler.API.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace RoomScheduler.API.Data;
@@ -38,7 +40,6 @@ public static class DevTestDbSeeder
             };
             rooms.Add(room);
 
-            // SVAKA soba dobija softverske pakete u zavisnosti od tipa
             if (prefix.Contains("Laboratorija") || prefix.Contains("Amfiteatar"))
             {
                 db.SoftwarePackages.Add(new SoftwarePackage { Name = "Visual Studio 2022", RoomId = i });
@@ -54,32 +55,38 @@ public static class DevTestDbSeeder
         db.Rooms.AddRange(rooms);
         await db.SaveChangesAsync();
 
+        // Rooms were inserted with explicit Ids, so the DB's auto-increment sequence
+        // never advanced — bump it now or the next auto-generated insert will collide
+        await db.Database.ExecuteSqlRawAsync(
+            "SELECT setval(pg_get_serial_sequence('\"Rooms\"', 'Id'), COALESCE((SELECT MAX(\"Id\") FROM \"Rooms\"), 0) + 1, false);");
+
         // ==========================================
         // 2. GENERISANJE KORISNIKA 
         // ==========================================
-        
-        // 2a. 4 PROFESORA + 4 ASISTENTA (Sa različitim departmanima)
-        var staffUsers = new List<ApplicationUser>
+        var professors = new List<ApplicationUser>
         {
             new() { Id = "u-prof-1", UserName = "milos.dikic@roomscheduler.local", Email = "milos.dikic@roomscheduler.local", FirstName = "Miloš", LastName = "Dikić", Role = UserRole.Professor, Title = "Prof. dr", Department = Department.DEPARTMENT_EL, IsActive = true, EmailConfirmed = true },
             new() { Id = "u-prof-2", UserName = "nikola.stankovic@roomscheduler.local", Email = "nikola.stankovic@roomscheduler.local", FirstName = "Nikola", LastName = "Stanković", Role = UserRole.Professor, Title = "Prof. dr", Department = Department.DEPARTMENT_CSY, IsActive = true, EmailConfirmed = true },
             new() { Id = "u-prof-3", UserName = "dragan.radenkovic@roomscheduler.local", Email = "dragan.radenkovic@roomscheduler.local", FirstName = "Dragan", LastName = "Radenković", Role = UserRole.Professor, Title = "Doc. dr", Department = Department.DEPARTMENT_TE, IsActive = true, EmailConfirmed = true },
-            new() { Id = "u-prof-4", UserName = "slobodan.marinkovic@roomscheduler.local", Email = "slobodan.marinkovic@roomscheduler.local", FirstName = "Slobodan", LastName = "Marinković", Role = UserRole.Professor, Title = "Doc. dr", Department = Department.DEPARTMENT_TEE, IsActive = true, EmailConfirmed = true },
-            
-            new() { Id = "u-asist-1", UserName = "jelena.petrovic@roomscheduler.local", Email = "jelena.petrovic@roomscheduler.local", FirstName = "Jelena", LastName = "Petrović", Role = UserRole.Professor, Title = "Asistent", Department = Department.DEPARTMENT_GE, IsActive = true, EmailConfirmed = true },
-            new() { Id = "u-asist-2", UserName = "marko.jovanovic@roomscheduler.local", Email = "marko.jovanovic@roomscheduler.local", FirstName = "Marko", LastName = "Jovanović", Role = UserRole.Professor, Title = "Asistent", Department = Department.DEPARTMENT_MA, IsActive = true, EmailConfirmed = true },
-            new() { Id = "u-asist-3", UserName = "katarina.vukovic@roomscheduler.local", Email = "katarina.vukovic@roomscheduler.local", FirstName = "Katarina", LastName = "Vuković", Role = UserRole.Professor, Title = "Asistent", Department = Department.DEPARTMENT_PE, IsActive = true, EmailConfirmed = true },
-            new() { Id = "u-asist-4", UserName = "stefan.bogdanovic@roomscheduler.local", Email = "stefan.bogdanovic@roomscheduler.local", FirstName = "Stefan", LastName = "Bogdanović", Role = UserRole.Professor, Title = "Asistent", Department = Department.DEPARTMENT_MI, IsActive = true, EmailConfirmed = true }
+            new() { Id = "u-prof-4", UserName = "slobodan.marinkovic@roomscheduler.local", Email = "slobodan.marinkovic@roomscheduler.local", FirstName = "Slobodan", LastName = "Marinković", Role = UserRole.Professor, Title = "Doc. dr", Department = Department.DEPARTMENT_TEE, IsActive = true, EmailConfirmed = true }
         };
 
-        foreach (var user in staffUsers)
+        var assistants = new List<ApplicationUser>
+        {
+            new() { Id = "u-asist-1", UserName = "jelena.petrovic@roomscheduler.local", Email = "jelena.petrovic@roomscheduler.local", FirstName = "Jelena", LastName = "Petrović", Role = UserRole.Assistant, Title = "Asistent", Department = Department.DEPARTMENT_GE, IsActive = true, EmailConfirmed = true },
+            new() { Id = "u-asist-2", UserName = "marko.jovanovic@roomscheduler.local", Email = "marko.jovanovic@roomscheduler.local", FirstName = "Marko", LastName = "Jovanović", Role = UserRole.Assistant, Title = "Asistent", Department = Department.DEPARTMENT_MA, IsActive = true, EmailConfirmed = true },
+            new() { Id = "u-asist-3", UserName = "katarina.vukovic@roomscheduler.local", Email = "katarina.vukovic@roomscheduler.local", FirstName = "Katarina", LastName = "Vuković", Role = UserRole.Assistant, Title = "Asistent", Department = Department.DEPARTMENT_PE, IsActive = true, EmailConfirmed = true },
+            new() { Id = "u-asist-4", UserName = "stefan.bogdanovic@roomscheduler.local", Email = "stefan.bogdanovic@roomscheduler.local", FirstName = "Stefan", LastName = "Bogdanović", Role = UserRole.Assistant, Title = "Asistent", Department = Department.DEPARTMENT_MI, IsActive = true, EmailConfirmed = true }
+        };
+
+        var allStaff = professors.Concat(assistants).ToList();
+        foreach (var user in allStaff)
         {
             user.NormalizedUserName = user.UserName!.ToUpper();
             user.NormalizedEmail = user.Email!.ToUpper();
             await userManager.CreateAsync(user, "TestPassword123!");
         }
 
-        // 2b. GENERISANJE 6 STUDENATA (Uloga User, imaju indexe, ali NEMAJU rezervacije)
         var students = new List<ApplicationUser>
         {
             new() { Id = "u-stud-1", UserName = "luka.kostadinovic@roomscheduler.local", Email = "luka.kostadinovic@roomscheduler.local", FirstName = "Luka", LastName = "Kostadinović", Role = UserRole.User, IndexNumber = 19697, IsActive = true, EmailConfirmed = true },
@@ -98,67 +105,185 @@ public static class DevTestDbSeeder
         }
 
         // ==========================================
-        // 3. GENERISANJE ~100 REZERVACIJA 
-        // (Garantovano: samo za osoblje i bez duplih termina po profesoru)
+        // 3. SELEKCIJA KORISNIKA I GENERISANJE REZERVACIJA
         // ==========================================
-        var bookings = new List<Booking>();
-        var baseDate = DateTime.UtcNow.Date;
+        var rand = new Random(42); // Fiksni seed radi konzistentnosti pri svakom seed-ovanju
         
-        string[] notesTemplates = { 
-            "Predavanje iz Softverskog Inženjerstva", 
-            "Laboratorijske vežbe - Grupa 1", 
-            "Polaganje kolokvijuma", 
-            "Konsultacije sa studentima", 
-            "Prezentacija naučnog rada", 
-            "Sastanak katedre" 
-        };
+        // Nasumično biramo 2 profesora i 2 asistenta
+        var selectedProfessors = professors.OrderBy(_ => rand.Next()).Take(2).ToList();
+        var selectedAssistants = assistants.OrderBy(_ => rand.Next()).Take(2).ToList();
+        var activeStaff = selectedProfessors.Concat(selectedAssistants).ToList();
 
+        var bookings = new List<Booking>();
         int bookingIdCounter = 1;
-        int[] slots = { 8, 11, 14, 17 };
 
-        for (int dayOffset = 0; dayOffset < 14; dayOffset++)
+        // Vremenske odrednice na osnovu današnjeg datuma pokretanja skripte
+        DateTime seedStartDate = DateTime.UtcNow.Date; 
+        DateTime periodStart = seedStartDate.AddMonths(-1); // Mesec dana u prošlost
+        DateTime periodEnd = seedStartDate.AddMonths(1);    // Mesec dana u budućnost (Ukupno 2 meseca)
+
+        // Evidencija zauzetosti: "SobaId_Date_Slot" i "UserId_Date_Slot" da sprečimo bilo kakva preklapanja
+        var occupiedSlots = new HashSet<string>();
+
+        // Definisani fiksni školski dvočasi / tročasi radi preglednosti
+        int[] dailySlots = { 8, 11, 14, 17 }; 
+        double slotDurationHours = 2.5;
+
+        // --- 3a. GENERISANJE RECURRING BOOKINGA (1 serija po korisniku) ---
+        foreach (var staff in activeStaff)
         {
-            DateTime currentDay = baseDate.AddDays(dayOffset);
-            if (currentDay.DayOfWeek == DayOfWeek.Saturday || currentDay.DayOfWeek == DayOfWeek.Sunday)
-                continue; // Preskačemo vikende
+            OccasionType occasion = staff.Role == UserRole.Assistant ? OccasionType.LabVezbe : OccasionType.Ispit;
+            string notes = staff.Role == UserRole.Assistant ? "Redovne Laboratorijske Vežbe" : "Redovna Predavanja / Ispitni rokovi";
+            
+            Guid recurringGroupId = Guid.NewGuid();
+            bool isRootAssigned = false;
 
-            foreach (var startHour in slots)
+            // Biramo pogodan dan u nedelji i fiksni sat koji su slobodni za prvu nedelju
+            int chosenRoomId = 1;
+            int chosenHour = dailySlots[rand.Next(dailySlots.Length)];
+            DayOfWeek chosenDay = (DayOfWeek)rand.Next(1, 6); // Ponedeljak - Petak
+
+            // Pronalazimo prvu sobu koja je potpuno slobodna za ovu seriju kroz ceo period
+            bool roomFound = false;
+            for (int r = 1; r <= 20; r++)
             {
-                // Idemo po indeksu osoblja (staffUsers) – ima ih tačno 8.
-                // Svaki dobija tačno jednu rezervaciju u ovom satu, tako da niko nema dupli termin!
-                for (int staffIndex = 0; staffIndex < staffUsers.Count; staffIndex++)
+                bool hasConflict = false;
+                // Prolazimo kroz sve nedelje u opsegu od 2 meseca
+                for (DateTime date = periodStart; date <= periodEnd; date = date.AddDays(1))
                 {
-                    var teacher = staffUsers[staffIndex];
-                    
-                    // Rotiramo sobe (1-20) na osnovu dana, sata i profesora
-                    int roomId = ((dayOffset * 5 + startHour + staffIndex) % 20) + 1;
-
-                    DateTime start = currentDay.AddHours(startHour);
-                    DateTime end = start.AddHours(2.5); // Trajanje 2h 30min
-
-                    string notes = notesTemplates[(dayOffset + staffIndex) % notesTemplates.Length];
-                    OccasionType occasion = (OccasionType)((dayOffset + staffIndex) % 3);
-                    
-                    // Svaka 10. rezervacija je otkazana radi testiranja UI filtera (IsCancelled = true)
-                    bool isCancelled = (dayOffset + staffIndex) % 10 == 0;
-
-                    bookings.Add(new Booking
+                    if (date.DayOfWeek == chosenDay)
                     {
-                        Id = bookingIdCounter++,
-                        RoomId = roomId,
-                        UserId = teacher.Id,
-                        Start = start,
-                        End = end,
-                        Notes = isCancelled ? $"[OTKAZANO] {notes}" : notes,
-                        IsCancelled = isCancelled,
-                        OccasionType = occasion,
-                        IsRecurringRoot = false
-                    });
+                        string roomKey = $"{r}_{date:yyyyMMdd}_{chosenHour}";
+                        string userKey = $"{staff.Id}_{date:yyyyMMdd}_{chosenHour}";
+                        if (occupiedSlots.Contains(roomKey) || occupiedSlots.Contains(userKey))
+                        {
+                            hasConflict = true;
+                            break;
+                        }
+                    }
                 }
+
+                if (!hasConflict)
+                {
+                    chosenRoomId = r;
+                    roomFound = true;
+                    break;
+                }
+            }
+
+            // Ako nismo našli idealnu sobu, uzimamo fallback rotaciju baziranu na ID-ju korisnika
+            if (!roomFound)
+            {
+                chosenRoomId = (staff.Id.GetHashCode() % 20) + 1;
+            }
+
+            // Upisujemo seriju kroz čitav period od 2 meseca (nedeljno ponavljanje)
+            for (DateTime date = periodStart; date <= periodEnd; date = date.AddDays(1))
+            {
+                if (date.DayOfWeek != chosenDay) continue;
+
+                DateTime start = date.AddHours(chosenHour);
+                DateTime end = start.AddHours(slotDurationHours);
+
+                string roomKey = $"{chosenRoomId}_{date:yyyyMMdd}_{chosenHour}";
+                string userKey = $"{staff.Id}_{date:yyyyMMdd}_{chosenHour}";
+
+                // Zauzimamo slotove
+                occupiedSlots.Add(roomKey);
+                occupiedSlots.Add(userKey);
+
+                bool isRoot = !isRootAssigned;
+                if (isRoot) isRootAssigned = true;
+
+                bookings.Add(new Booking
+                {
+                    Id = bookingIdCounter++,
+                    RoomId = chosenRoomId,
+                    UserId = staff.Id,
+                    Start = start,
+                    End = end,
+                    Notes = notes,
+                    IsCancelled = false,
+                    OccasionType = occasion,
+                    RecurringGroupId = recurringGroupId,
+                    IsRecurringRoot = isRoot,
+                    RecurrencePattern = isRoot ? RecurrencePattern.Weekly : null,
+                    RecurrenceEndDate = isRoot ? periodEnd : null
+                });
+            }
+        }
+
+        // --- 3b. GENERISANJE NON-RECURRING BOOKINGA (6 po korisniku) ---
+        int totalDaysInPeriod = (periodEnd - periodStart).Days;
+
+        foreach (var staff in activeStaff)
+        {
+            int createdNonRecurring = 0;
+            int attempts = 0;
+
+            // Pokušavamo da smestimo tačno 6 nasumičnih pojedinačnih događaja bez preklapanja
+            while (createdNonRecurring < 6 && attempts < 500)
+            {
+                attempts++;
+                
+                // Biramo nasumičan dan u opsegu od 2 meseca
+                int randomDayOffset = rand.Next(totalDaysInPeriod + 1);
+                DateTime randomDate = periodStart.AddDays(randomDayOffset);
+
+                // Preskačemo vikende radi realističnosti
+                if (randomDate.DayOfWeek == DayOfWeek.Saturday || randomDate.DayOfWeek == DayOfWeek.Sunday)
+                    continue;
+
+                int randomHour = dailySlots[rand.Next(dailySlots.Length)];
+                int randomRoomId = rand.Next(1, 21);
+
+                string roomKey = $"{randomRoomId}_{randomDate:yyyyMMdd}_{randomHour}";
+                string userKey = $"{staff.Id}_{randomDate:yyyyMMdd}_{randomHour}";
+
+                // Ako su soba ili profesor već zauzeti u tom slotu, idemo u narednu iteraciju (tražimo slobodan)
+                if (occupiedSlots.Contains(roomKey) || occupiedSlots.Contains(userKey))
+                    continue;
+
+                // Ako je asistent, dozvoljene su mu samo lab vežbe, profesorima kolokvijumi/ispiti
+                OccasionType occasion = staff.Role == UserRole.Assistant 
+                    ? OccasionType.LabVezbe 
+                    : (rand.Next(2) == 0 ? OccasionType.Kolokvijum : OccasionType.Ispit);
+
+                string notes = occasion == OccasionType.Kolokvijum ? "Vanredni Kolokvijum" : 
+                               occasion == OccasionType.Ispit ? "Vanredni Ispitni Rok" : "Dodatni termin za vežbe";
+
+                DateTime start = randomDate.AddHours(randomHour);
+                DateTime end = start.AddHours(slotDurationHours);
+
+                // Označavamo slotove kao zauzete
+                occupiedSlots.Add(roomKey);
+                occupiedSlots.Add(userKey);
+
+                bookings.Add(new Booking
+                {
+                    Id = bookingIdCounter++,
+                    RoomId = randomRoomId,
+                    UserId = staff.Id,
+                    Start = start,
+                    End = end,
+                    Notes = notes,
+                    IsCancelled = false,
+                    OccasionType = occasion,
+                    RecurringGroupId = null,
+                    IsRecurringRoot = false,
+                    RecurrencePattern = null,
+                    RecurrenceEndDate = null
+                });
+
+                createdNonRecurring++;
             }
         }
 
         db.Bookings.AddRange(bookings);
         await db.SaveChangesAsync();
+
+        // Same as Rooms above — Bookings were also seeded with explicit Ids
+        await db.Database.ExecuteSqlRawAsync(
+            "SELECT setval(pg_get_serial_sequence('\"Bookings\"', 'Id'), COALESCE((SELECT MAX(\"Id\") FROM \"Bookings\"), 0) + 1, false);");
     }
 }

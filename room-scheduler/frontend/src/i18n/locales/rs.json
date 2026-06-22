@@ -110,6 +110,8 @@
     "roomReactivateFailed": "Reaktiviranje sale nije uspelo",
     "bookingRestored": "Rezervacija je vraćena",
     "restoreFailed": "Vraćanje rezervacije nije uspelo",
+    "bookingUpdated": "Rezervacija je uspešno ažurirana",
+    "bookingUpdateFailed": "Ažuriranje rezervacije nije uspelo",
     "settingsSaved": "Podešavanja su sačuvana",
     "settingsFailed": "Čuvanje podešavanja nije uspelo",
     "profileUpdated": "Profil je uspešno ažuriran",
@@ -148,6 +150,13 @@
     "notes": "Napomena",
     "cancelBooking": "Otkaži rezervaciju",
     "restoreBooking": "Vrati rezervaciju",
+    "editBooking": "Uredi rezervaciju",
+    "saveChangesBtn": "Sačuvaj izmene",
+    "savingChanges": "Čuvanje...",
+    "recurringEditPrompt": "Ova rezervacija je deo serije koja se ponavlja. Šta želite da uredite?",
+    "recurringActionPrompt": "Ova rezervacija je deo serije koja se ponavlja. Šta želite da uradite?",
+    "scopeThisOccurrence": "Samo ovaj termin",
+    "scopeFutureOccurrences": "Ovaj i sve naredne termine",
     "close": "Zatvori",
     "filterUpcoming": "Naredne",
     "filterPast": "Prošle",
@@ -167,7 +176,8 @@
     "goToCalendar": "Idite na kalendar i prevucite da rezervišete salu.",
     "recurring": "Ponavljajuća",
     "cancel": "Otkaži",
-    "restore": "Vrati"
+    "restore": "Vrati",
+    "edit": "Uredi"
   },
   "status": {
     "Confirmed": "Potvrđena",
@@ -249,7 +259,9 @@
     "loading": "Učitavanje rezervacija...",
     "noBookings": "Još nema rezervacija.",
     "cancel": "Otkaži",
-    "restore": "Vrati"
+    "restore": "Vrati",
+    "edit": "Uredi",
+    "recurring": "Ponavljajuća"
   },
   "occasionSettings": {
     "title": "Podešavanja termina",
