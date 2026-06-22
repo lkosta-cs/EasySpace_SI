@@ -379,23 +379,26 @@
 
             await _db.SaveChangesAsync();
 
-            // Notify owner if cancelled by admin — this is a best-effort side
-            // effect, a broken/unreachable SMTP server should not fail the cancellation
+            // Notify owner if cancelled by admin — fire-and-forget, this is a
+            // best-effort side effect and must not delay the response while
+            // an unreachable SMTP server (e.g. "mailhog" outside Docker) times out
             if (isAdmin && booking.UserId != currentUserId && booking.User.Email != null)
             {
-                try
+                var email = booking.User.Email;
+                var fullName = booking.User.FullName;
+                var roomName = booking.Room.Name;
+                var start = booking.Start;
+                _ = Task.Run(async () =>
                 {
-                    await _emailService.SendBookingCancelledEmailAsync(
-                        booking.User.Email,
-                        booking.User.FullName,
-                        booking.Room.Name,
-                        booking.Start
-                    );
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed to send booking cancellation email to {Email}", booking.User.Email);
-                }
+                    try
+                    {
+                        await _emailService.SendBookingCancelledEmailAsync(email, fullName, roomName, start);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to send booking cancellation email to {Email}", email);
+                    }
+                });
             }
 
             return NoContent();
