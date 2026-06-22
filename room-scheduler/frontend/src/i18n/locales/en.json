@@ -110,6 +110,8 @@
     "roomReactivateFailed": "Failed to reactivate room",
     "bookingRestored": "Booking restored",
     "restoreFailed": "Failed to restore booking",
+    "bookingUpdated": "Booking updated successfully",
+    "bookingUpdateFailed": "Failed to update booking",
     "settingsSaved": "Settings saved",
     "settingsFailed": "Failed to save settings",
     "profileUpdated": "Profile updated successfully",
@@ -148,6 +150,13 @@
     "notes": "Notes",
     "cancelBooking": "Cancel booking",
     "restoreBooking": "Restore booking",
+    "editBooking": "Edit booking",
+    "saveChangesBtn": "Save changes",
+    "savingChanges": "Saving...",
+    "recurringEditPrompt": "This booking is part of a recurring series. What would you like to edit?",
+    "recurringActionPrompt": "This booking is part of a recurring series. What would you like to do?",
+    "scopeThisOccurrence": "This occurrence only",
+    "scopeFutureOccurrences": "This and all following occurrences",
     "close": "Close",
     "filterUpcoming": "Upcoming",
     "filterPast": "Past",
@@ -167,7 +176,8 @@
     "goToCalendar": "Go to the calendar and drag to book a room.",
     "recurring": "Recurring",
     "cancel": "Cancel",
-    "restore": "Restore"
+    "restore": "Restore",
+    "edit": "Edit"
   },
   "status": {
     "Confirmed": "Confirmed",
@@ -249,7 +259,9 @@
     "loading": "Loading bookings...",
     "noBookings": "No bookings yet.",
     "cancel": "Cancel",
-    "restore": "Restore"
+    "restore": "Restore",
+    "edit": "Edit",
+    "recurring": "Recurring"
   },
   "occasionSettings": {
     "title": "Occasion Settings",

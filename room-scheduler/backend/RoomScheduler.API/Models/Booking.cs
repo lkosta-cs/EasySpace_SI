@@ -33,3 +33,9 @@ public enum RecurrencePattern
     BiWeekly = 1,
     Monthly = 2
 }
+
+public enum EditType
+{
+    Single = 0,
+    FutureSeries = 1
+}
