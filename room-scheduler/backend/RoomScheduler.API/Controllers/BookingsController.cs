@@ -186,11 +186,16 @@
                 query = query.Where(b => b.IsCancelled);
 
             if (startDate.HasValue)
-                query = query.Where(b => b.Start >= startDate.Value);
+            {
+                var start = DateTime.SpecifyKind(startDate.Value, DateTimeKind.Utc);
+                query = query.Where(b => b.Start >= start);
+            }
 
             if (endDate.HasValue)
-                query = query.Where(b => b.Start < endDate.Value.Date.AddDays(1));
-
+            {
+                var end = DateTime.SpecifyKind(endDate.Value.Date.AddDays(1), DateTimeKind.Utc);
+                query = query.Where(b => b.Start < end);
+            }
             return query;
         }
 
@@ -207,11 +212,11 @@
 
             // Role-based occasion type restrictions
             if (isAssistant &&
-                dto.OccasionType != OccasionType.LabVezbe)
+                dto.OccasionType != OccasionType.LabSession)
                 return Forbid();
 
             if (isProfessor &&
-                dto.OccasionType == OccasionType.LabVezbe)
+                dto.OccasionType == OccasionType.LabSession)
                 return Forbid();
 
             // Check room exists
@@ -303,10 +308,10 @@
             if (booking.UserId != currentUserId && !isAdmin)
                 return Forbid();
 
-            if (isAssistant && dto.OccasionType != OccasionType.LabVezbe)
+            if (isAssistant && dto.OccasionType != OccasionType.LabSession)
                 return Forbid();
 
-            if (isProfessor && dto.OccasionType == OccasionType.LabVezbe)
+            if (isProfessor && dto.OccasionType == OccasionType.LabSession)
                 return Forbid();
 
             var room = await _db.Rooms.FindAsync(dto.RoomId);

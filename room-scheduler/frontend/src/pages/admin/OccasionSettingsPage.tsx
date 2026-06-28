@@ -74,7 +74,7 @@ export default function OccasionSettingsPage() {
                     className="w-4 h-4 rounded-full"
                     style={{ backgroundColor: current.color }}
                   />
-                  <h3 className="text-base font-medium text-gray-900">{config.label}</h3>
+                  <h3 className="text-base font-medium text-gray-900">{t(`occasionType.${config.occasionType}`)}</h3>
                 </div>
 
                 <div className="mb-4">

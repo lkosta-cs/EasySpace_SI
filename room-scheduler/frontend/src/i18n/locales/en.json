@@ -64,7 +64,7 @@
     "users": "Users",
     "rooms": "Rooms",
     "bookings": "Bookings",
-    "occasionSettings": "Occasion Settings",
+    "occasionSettings": "Fine Settings",
     "myProfile": "My profile"
   },
   "profile": {
@@ -304,14 +304,14 @@
     "pageOf": "Page {{page}} of {{totalPages}}"
   },
   "occasionSettings": {
-    "title": "Occasion Settings",
+    "title": "Fine Settings",
     "subtitle": "Configure colors and approval requirements for each occasion type",
     "loading": "Loading...",
     "confirmedColor": "Color",
     "save": "Save"
   },
   "occasionType": {
-    "0": "Kolokvijum",
+    "0": "Midterm exam",
     "1": "Exam",
     "2": "Lab session"
   },

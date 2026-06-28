@@ -18,6 +18,14 @@ public class AppDbContext : IdentityUserContext<ApplicationUser>
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<Room>()
+        .Property(r => r.Id)
+        .ValueGeneratedOnAdd();
+
+        builder.Entity<Booking>()
+        .Property(b => b.Id)
+        .ValueGeneratedOnAdd();
+        
         builder.Entity<ApplicationUser>()
             .Property(u => u.Role)
             .HasConversion<string>();

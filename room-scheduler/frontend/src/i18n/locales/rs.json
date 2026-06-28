@@ -64,7 +64,7 @@
     "users": "Korisnici",
     "rooms": "Sale",
     "bookings": "Rezervacije",
-    "occasionSettings": "Podešavanja termina",
+    "occasionSettings": "Fina podešavanja",
     "myProfile": "Moj profil"
   },
   "profile": {
@@ -304,7 +304,7 @@
     "pageOf": "Strana {{page}} od {{totalPages}}"
   },
   "occasionSettings": {
-    "title": "Podešavanja termina",
+    "title": "Fina podešavanja",
     "subtitle": "Podesite boje i zahteve za odobrenje za svaki tip termina",
     "loading": "Učitavanje...",
     "confirmedColor": "Boja",

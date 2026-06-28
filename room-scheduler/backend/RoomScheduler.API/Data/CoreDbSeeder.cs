@@ -34,18 +34,18 @@ public static class CoreDbSeeder
         {
             db.OccasionTypeConfigs.AddRange(
                 new OccasionTypeConfig {
-                    OccasionType = OccasionType.Kolokvijum,
-                    Label = "Kolokvijum",
+                    OccasionType = OccasionType.MidtermExam,
+                    Label = "Midterm exam",
                     Color = "#2563eb"
                 },
                 new OccasionTypeConfig {
-                    OccasionType = OccasionType.Ispit,
-                    Label = "Ispit",
+                    OccasionType = OccasionType.Exam,
+                    Label = "Exam",
                     Color = "#dc2626"
                 },
                 new OccasionTypeConfig {
-                    OccasionType = OccasionType.LabVezbe,
-                    Label = "Lab vežbe",
+                    OccasionType = OccasionType.LabSession,
+                    Label = "Lab session",
                     Color = "#16a34a"
                 }
             );

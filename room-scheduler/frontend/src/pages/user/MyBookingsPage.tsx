@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import BookingFormModal from '../../components/BookingFormModal';
 import RecurringScopeModal from '../../components/RecurringScopeModal';
 import { useUrlState } from '../../hooks/useUrlState';
+import { useAuthStore } from '../../stores/authStore';
 
 interface Booking {
   id: number;
@@ -29,7 +30,7 @@ interface OccasionConfig {
   color: string;
 }
 
-const OCCASION_TYPE_NAMES = ['Kolokvijum', 'Ispit', 'LabVezbe'];
+const OCCASION_TYPE_NAMES = ['MidtermExam', 'Exam', 'LabSession'];
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const SORT_FIELDS: NonNullable<BookingsQueryParams['sortBy']>[] = ['room', 'date', 'status'];
 
@@ -49,6 +50,7 @@ const URL_DEFAULTS = {
 export default function MyBookingsPage() {
   const qc = useQueryClient();
   const { t } = useTranslation();
+  const { user } = useAuthStore();
 
   // Applied filters, sort and paging — persisted to the URL so they survive refresh/back/share
   const [urlState, setUrlState] = useUrlState(URL_DEFAULTS, 'my-bookings-filters');
@@ -111,6 +113,10 @@ export default function MyBookingsPage() {
   });
   const getOccasionConfig = (occasionType: number): OccasionConfig | undefined =>
     occasionConfigs.find((c: OccasionConfig) => c.occasionType === occasionType);
+
+  const occasionTypeFilterOptions = occasionConfigs.filter((config: OccasionConfig) =>
+    user?.role === 'Professor' ? config.occasionType !== 2 : true
+  );
 
   const runSearch = () => {
     setUrlState({
@@ -209,12 +215,13 @@ export default function MyBookingsPage() {
           <select
             value={occasionTypeDraft}
             onChange={(e) => setOccasionTypeDraft(e.target.value)}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2 text-gray-700"
+            disabled={user?.role === 'Assistant'}
+            className="text-sm border border-gray-300 rounded-lg px-3 py-2 text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <option value="">{t('myBookings.filterOccasionType')}</option>
-            {occasionConfigs.map((config: OccasionConfig) => (
+            {occasionTypeFilterOptions.map((config: OccasionConfig) => (
               <option key={config.occasionType} value={OCCASION_TYPE_NAMES[config.occasionType]}>
-                {config.label}
+                {t(`occasionType.${config.occasionType}`)}
               </option>
             ))}
           </select>

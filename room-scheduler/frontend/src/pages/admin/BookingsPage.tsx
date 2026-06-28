@@ -32,7 +32,7 @@ interface OccasionConfig {
   color: string;
 }
 
-const OCCASION_TYPE_NAMES = ['Kolokvijum', 'Ispit', 'LabVezbe'];
+const OCCASION_TYPE_NAMES = ['MidtermExam', 'Exam', 'LabSession'];
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const SORT_FIELDS: NonNullable<BookingsQueryParams['sortBy']>[] = ['room', 'user', 'date', 'status'];
 
@@ -229,7 +229,7 @@ export default function BookingsPage() {
             <option value="">{t('bookings.filterOccasionType')}</option>
             {occasionConfigs.map((config: OccasionConfig) => (
               <option key={config.occasionType} value={OCCASION_TYPE_NAMES[config.occasionType]}>
-                {config.label}
+                {t(`occasionType.${config.occasionType}`)}
               </option>
             ))}
           </select>

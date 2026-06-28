@@ -238,7 +238,7 @@ namespace RoomScheduler.API.Migrations
 
                     b.HasIndex("RoomId", "Start", "End");
 
-                    b.ToTable("Bookings");
+                    b.ToTable("Bookings", (string)null);
                 });
 
             modelBuilder.Entity("RoomScheduler.API.Models.OccasionTypeConfig", b =>
@@ -265,7 +265,7 @@ namespace RoomScheduler.API.Migrations
                     b.HasIndex("OccasionType")
                         .IsUnique();
 
-                    b.ToTable("OccasionTypeConfigs");
+                    b.ToTable("OccasionTypeConfigs", (string)null);
                 });
 
             modelBuilder.Entity("RoomScheduler.API.Models.Room", b =>
@@ -291,7 +291,7 @@ namespace RoomScheduler.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Rooms");
+                    b.ToTable("Rooms", (string)null);
                 });
 
             modelBuilder.Entity("RoomScheduler.API.Models.SoftwarePackage", b =>
@@ -313,7 +313,7 @@ namespace RoomScheduler.API.Migrations
 
                     b.HasIndex("RoomId");
 
-                    b.ToTable("SoftwarePackages");
+                    b.ToTable("SoftwarePackages", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
