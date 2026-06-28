@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -6,6 +6,7 @@ import { usersApi, type UserListItem, type UsersQueryParams } from '../../api/us
 import { roomsApi } from '../../api/rooms';
 import { useAuthStore } from '../../stores/authStore';
 import EditUserModal from '../../components/EditUserModal';
+import { useUrlState } from '../../hooks/useUrlState';
 
 type User = UserListItem;
 
@@ -24,6 +25,16 @@ const ROLE_OPTIONS = ['User', 'Assistant', 'Professor', 'Admin', 'SuperAdmin'];
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const SORT_FIELDS: NonNullable<UsersQueryParams['sortBy']>[] = ['name', 'surname', 'email', 'role', 'status'];
 
+const URL_DEFAULTS = {
+  search: '',
+  roles: [] as string[],
+  status: 'all' as 'all' | 'active' | 'inactive',
+  sortBy: 'name' as NonNullable<UsersQueryParams['sortBy']>,
+  sortDir: 'asc' as NonNullable<UsersQueryParams['sortDir']>,
+  page: 1,
+  pageSize: 20,
+};
+
 export default function UserManagementPage() {
   const qc = useQueryClient();
   const { t } = useTranslation();
@@ -34,27 +45,29 @@ export default function UserManagementPage() {
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [editUserId, setEditUserId] = useState<string | null>(null);
 
+  // Applied filters, sort and paging — persisted to the URL so they survive refresh/back/share
+  const [urlState, setUrlState] = useUrlState(URL_DEFAULTS, 'users-filters');
+  const { sortBy, sortDir, page, pageSize } = urlState;
+
   // Draft filter values — only applied to the query when "Search" is clicked
-  const [searchDraft, setSearchDraft] = useState('');
-  const [rolesDraft, setRolesDraft] = useState<Set<string>>(new Set());
-  const [statusDraft, setStatusDraft] = useState<'all' | 'active' | 'inactive'>('all');
+  const [searchDraft, setSearchDraft] = useState(urlState.search);
+  const [rolesDraft, setRolesDraft] = useState<Set<string>>(new Set(urlState.roles));
+  const [statusDraft, setStatusDraft] = useState(urlState.status);
   const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
 
-  // Applied filters — actually sent to the server
-  const [appliedSearch, setAppliedSearch] = useState('');
-  const [appliedRoles, setAppliedRoles] = useState<Set<string>>(new Set());
-  const [appliedStatus, setAppliedStatus] = useState<'all' | 'active' | 'inactive'>('all');
-
-  // Sorting and paging — applied immediately
-  const [sortBy, setSortBy] = useState<NonNullable<UsersQueryParams['sortBy']>>('name');
-  const [sortDir, setSortDir] = useState<NonNullable<UsersQueryParams['sortDir']>>('asc');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  // Re-sync drafts whenever the applied filters change from outside the Search button
+  // (URL restored from storage, or navigating directly to a URL with different params).
+  const rolesKey = JSON.stringify(urlState.roles);
+  useEffect(() => {
+    setSearchDraft(urlState.search);
+    setRolesDraft(new Set(urlState.roles));
+    setStatusDraft(urlState.status);
+  }, [urlState.search, rolesKey, urlState.status]);
 
   const queryParams: UsersQueryParams = {
-    search: appliedSearch || undefined,
-    roles: appliedRoles.size > 0 ? Array.from(appliedRoles) : undefined,
-    status: appliedStatus === 'all' ? undefined : appliedStatus,
+    search: urlState.search || undefined,
+    roles: urlState.roles.length > 0 ? urlState.roles : undefined,
+    status: urlState.status === 'all' ? undefined : urlState.status,
     sortBy,
     sortDir,
     page,
@@ -76,10 +89,12 @@ export default function UserManagementPage() {
   });
 
   const runSearch = () => {
-    setAppliedSearch(searchDraft.trim());
-    setAppliedRoles(new Set(rolesDraft));
-    setAppliedStatus(statusDraft);
-    setPage(1);
+    setUrlState({
+      search: searchDraft.trim(),
+      roles: Array.from(rolesDraft),
+      status: statusDraft,
+      page: 1,
+    });
   };
 
   const toggleRoleDraft = (role: string) => {
@@ -93,17 +108,14 @@ export default function UserManagementPage() {
 
   const toggleSort = (field: NonNullable<UsersQueryParams['sortBy']>) => {
     if (sortBy === field) {
-      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      setUrlState({ sortDir: sortDir === 'asc' ? 'desc' : 'asc', page: 1 });
     } else {
-      setSortBy(field);
-      setSortDir('asc');
+      setUrlState({ sortBy: field, sortDir: 'asc', page: 1 });
     }
-    setPage(1);
   };
 
   const changePageSize = (value: number) => {
-    setPageSize(value);
-    setPage(1);
+    setUrlState({ pageSize: value, page: 1 });
   };
 
   const toggleActiveMutation = useMutation({
@@ -324,7 +336,7 @@ export default function UserManagementPage() {
                   <button
                     type="button"
                     disabled={page <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    onClick={() => setUrlState({ page: Math.max(1, page - 1) })}
                     className="text-xs px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
                   >
                     {t('users.pagePrev')}
@@ -335,7 +347,7 @@ export default function UserManagementPage() {
                   <button
                     type="button"
                     disabled={page >= totalPages}
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    onClick={() => setUrlState({ page: Math.min(totalPages, page + 1) })}
                     className="text-xs px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
                   >
                     {t('users.pageNext')}

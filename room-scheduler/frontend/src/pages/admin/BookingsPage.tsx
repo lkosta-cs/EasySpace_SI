@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,7 @@ import { usersApi } from '../../api/users';
 import { format } from 'date-fns';
 import BookingFormModal from '../../components/BookingFormModal';
 import RecurringScopeModal from '../../components/RecurringScopeModal';
+import { useUrlState } from '../../hooks/useUrlState';
 
 interface Booking {
   id: number;
@@ -31,49 +32,72 @@ interface OccasionConfig {
   color: string;
 }
 
-const OCCASION_TYPE_NAMES = ['Kolokvijum', 'Ispit', 'LabVezbe'];
+const OCCASION_TYPE_NAMES = ['MidtermExam', 'Exam', 'LabSession'];
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const SORT_FIELDS: NonNullable<BookingsQueryParams['sortBy']>[] = ['room', 'user', 'date', 'status'];
+
+const URL_DEFAULTS = {
+  roomName: '',
+  description: '',
+  occasionType: '',
+  status: 'all' as 'all' | 'active' | 'cancelled',
+  startDate: '',
+  endDate: '',
+  userId: '',
+  sortBy: 'date' as NonNullable<BookingsQueryParams['sortBy']>,
+  sortDir: 'asc' as NonNullable<BookingsQueryParams['sortDir']>,
+  page: 1,
+  pageSize: 20,
+};
 
 export default function BookingsPage() {
   const qc = useQueryClient();
   const { t } = useTranslation();
 
+  // Applied filters, sort and paging — persisted to the URL so they survive refresh/back/share
+  const [urlState, setUrlState] = useUrlState(URL_DEFAULTS, 'bookings-filters');
+  const { sortBy, sortDir, page, pageSize } = urlState;
+
   // Draft filter values — only applied to the query when "Search" is clicked
-  const [roomNameDraft, setRoomNameDraft] = useState('');
-  const [descriptionDraft, setDescriptionDraft] = useState('');
-  const [occasionTypeDraft, setOccasionTypeDraft] = useState('');
-  const [statusDraft, setStatusDraft] = useState<'all' | 'active' | 'cancelled'>('all');
-  const [startDateDraft, setStartDateDraft] = useState('');
-  const [endDateDraft, setEndDateDraft] = useState('');
-  const [userIdDraft, setUserIdDraft] = useState('');
+  const [roomNameDraft, setRoomNameDraft] = useState(urlState.roomName);
+  const [descriptionDraft, setDescriptionDraft] = useState(urlState.description);
+  const [occasionTypeDraft, setOccasionTypeDraft] = useState(urlState.occasionType);
+  const [statusDraft, setStatusDraft] = useState(urlState.status);
+  const [startDateDraft, setStartDateDraft] = useState(urlState.startDate);
+  const [endDateDraft, setEndDateDraft] = useState(urlState.endDate);
+  const [userIdDraft, setUserIdDraft] = useState(urlState.userId);
 
-  // Applied filters — actually sent to the server
-  const [appliedRoomName, setAppliedRoomName] = useState('');
-  const [appliedDescription, setAppliedDescription] = useState('');
-  const [appliedOccasionType, setAppliedOccasionType] = useState('');
-  const [appliedStatus, setAppliedStatus] = useState<'all' | 'active' | 'cancelled'>('all');
-  const [appliedStartDate, setAppliedStartDate] = useState('');
-  const [appliedEndDate, setAppliedEndDate] = useState('');
-  const [appliedUserId, setAppliedUserId] = useState('');
-
-  // Sorting and paging — applied immediately
-  const [sortBy, setSortBy] = useState<NonNullable<BookingsQueryParams['sortBy']>>('date');
-  const [sortDir, setSortDir] = useState<NonNullable<BookingsQueryParams['sortDir']>>('asc');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  // Re-sync drafts whenever the applied filters change from outside the Search button
+  // (URL restored from storage, or navigating directly to a URL with different params).
+  useEffect(() => {
+    setRoomNameDraft(urlState.roomName);
+    setDescriptionDraft(urlState.description);
+    setOccasionTypeDraft(urlState.occasionType);
+    setStatusDraft(urlState.status);
+    setStartDateDraft(urlState.startDate);
+    setEndDateDraft(urlState.endDate);
+    setUserIdDraft(urlState.userId);
+  }, [
+    urlState.roomName,
+    urlState.description,
+    urlState.occasionType,
+    urlState.status,
+    urlState.startDate,
+    urlState.endDate,
+    urlState.userId,
+  ]);
 
   const [editBookingId, setEditBookingId] = useState<number | null>(null);
   const [scopePrompt, setScopePrompt] = useState<{ booking: Booking; action: 'cancel' | 'restore' } | null>(null);
 
   const queryParams: BookingsQueryParams = {
-    roomName: appliedRoomName || undefined,
-    description: appliedDescription || undefined,
-    occasionType: appliedOccasionType || undefined,
-    status: appliedStatus === 'all' ? undefined : appliedStatus,
-    startDate: appliedStartDate || undefined,
-    endDate: appliedEndDate || undefined,
-    userId: appliedUserId || undefined,
+    roomName: urlState.roomName || undefined,
+    description: urlState.description || undefined,
+    occasionType: urlState.occasionType || undefined,
+    status: urlState.status === 'all' ? undefined : urlState.status,
+    startDate: urlState.startDate || undefined,
+    endDate: urlState.endDate || undefined,
+    userId: urlState.userId || undefined,
     sortBy,
     sortDir,
     page,
@@ -103,29 +127,28 @@ export default function BookingsPage() {
   const userOptions = usersData?.items ?? [];
 
   const runSearch = () => {
-    setAppliedRoomName(roomNameDraft.trim());
-    setAppliedDescription(descriptionDraft.trim());
-    setAppliedOccasionType(occasionTypeDraft);
-    setAppliedStatus(statusDraft);
-    setAppliedStartDate(startDateDraft);
-    setAppliedEndDate(endDateDraft);
-    setAppliedUserId(userIdDraft);
-    setPage(1);
+    setUrlState({
+      roomName: roomNameDraft.trim(),
+      description: descriptionDraft.trim(),
+      occasionType: occasionTypeDraft,
+      status: statusDraft,
+      startDate: startDateDraft,
+      endDate: endDateDraft,
+      userId: userIdDraft,
+      page: 1,
+    });
   };
 
   const toggleSort = (field: NonNullable<BookingsQueryParams['sortBy']>) => {
     if (sortBy === field) {
-      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      setUrlState({ sortDir: sortDir === 'asc' ? 'desc' : 'asc', page: 1 });
     } else {
-      setSortBy(field);
-      setSortDir('asc');
+      setUrlState({ sortBy: field, sortDir: 'asc', page: 1 });
     }
-    setPage(1);
   };
 
   const changePageSize = (value: number) => {
-    setPageSize(value);
-    setPage(1);
+    setUrlState({ pageSize: value, page: 1 });
   };
 
   const cancelMutation = useMutation({
@@ -206,7 +229,7 @@ export default function BookingsPage() {
             <option value="">{t('bookings.filterOccasionType')}</option>
             {occasionConfigs.map((config: OccasionConfig) => (
               <option key={config.occasionType} value={OCCASION_TYPE_NAMES[config.occasionType]}>
-                {config.label}
+                {t(`occasionType.${config.occasionType}`)}
               </option>
             ))}
           </select>
@@ -383,7 +406,7 @@ export default function BookingsPage() {
               <button
                 type="button"
                 disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setUrlState({ page: Math.max(1, page - 1) })}
                 className="text-xs px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 {t('bookings.pagePrev')}
@@ -394,7 +417,7 @@ export default function BookingsPage() {
               <button
                 type="button"
                 disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => setUrlState({ page: Math.min(totalPages, page + 1) })}
                 className="text-xs px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 {t('bookings.pageNext')}

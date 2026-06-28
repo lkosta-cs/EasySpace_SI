@@ -32,7 +32,6 @@ public static class DevTestDbSeeder
             
             var room = new Room
             {
-                Id = i,
                 Name = $"{prefix[0]}{i}", // A1, U2, R3, S4...
                 Seats = seats,
                 Description = $"{prefix} {i} na Elektronskom fakultetu.",
@@ -54,11 +53,6 @@ public static class DevTestDbSeeder
         }
         db.Rooms.AddRange(rooms);
         await db.SaveChangesAsync();
-
-        // Rooms were inserted with explicit Ids, so the DB's auto-increment sequence
-        // never advanced — bump it now or the next auto-generated insert will collide
-        await db.Database.ExecuteSqlRawAsync(
-            "SELECT setval(pg_get_serial_sequence('\"Rooms\"', 'Id'), COALESCE((SELECT MAX(\"Id\") FROM \"Rooms\"), 0) + 1, false);");
 
         // ==========================================
         // 2. GENERISANJE KORISNIKA 
@@ -115,7 +109,6 @@ public static class DevTestDbSeeder
         var activeStaff = selectedProfessors.Concat(selectedAssistants).ToList();
 
         var bookings = new List<Booking>();
-        int bookingIdCounter = 1;
 
         // Vremenske odrednice na osnovu današnjeg datuma pokretanja skripte
         DateTime seedStartDate = DateTime.UtcNow.Date; 
@@ -132,7 +125,7 @@ public static class DevTestDbSeeder
         // --- 3a. GENERISANJE RECURRING BOOKINGA (1 serija po korisniku) ---
         foreach (var staff in activeStaff)
         {
-            OccasionType occasion = staff.Role == UserRole.Assistant ? OccasionType.LabVezbe : OccasionType.Ispit;
+            OccasionType occasion = staff.Role == UserRole.Assistant ? OccasionType.LabSession : OccasionType.Exam;
             string notes = staff.Role == UserRole.Assistant ? "Redovne Laboratorijske Vežbe" : "Redovna Predavanja / Ispitni rokovi";
             
             Guid recurringGroupId = Guid.NewGuid();
@@ -197,7 +190,6 @@ public static class DevTestDbSeeder
 
                 bookings.Add(new Booking
                 {
-                    Id = bookingIdCounter++,
                     RoomId = chosenRoomId,
                     UserId = staff.Id,
                     Start = start,
@@ -246,11 +238,11 @@ public static class DevTestDbSeeder
 
                 // Ako je asistent, dozvoljene su mu samo lab vežbe, profesorima kolokvijumi/ispiti
                 OccasionType occasion = staff.Role == UserRole.Assistant 
-                    ? OccasionType.LabVezbe 
-                    : (rand.Next(2) == 0 ? OccasionType.Kolokvijum : OccasionType.Ispit);
+                    ? OccasionType.LabSession 
+                    : (rand.Next(2) == 0 ? OccasionType.MidtermExam : OccasionType.Exam);
 
-                string notes = occasion == OccasionType.Kolokvijum ? "Vanredni Kolokvijum" : 
-                               occasion == OccasionType.Ispit ? "Vanredni Ispitni Rok" : "Dodatni termin za vežbe";
+                string notes = occasion == OccasionType.MidtermExam ? "Vanredni Kolokvijum" : 
+                               occasion == OccasionType.Exam ? "Vanredni Ispitni Rok" : "Dodatni termin za vežbe";
 
                 DateTime start = randomDate.AddHours(randomHour);
                 DateTime end = start.AddHours(slotDurationHours);
@@ -261,7 +253,6 @@ public static class DevTestDbSeeder
 
                 bookings.Add(new Booking
                 {
-                    Id = bookingIdCounter++,
                     RoomId = randomRoomId,
                     UserId = staff.Id,
                     Start = start,
@@ -282,8 +273,5 @@ public static class DevTestDbSeeder
         db.Bookings.AddRange(bookings);
         await db.SaveChangesAsync();
 
-        // Same as Rooms above — Bookings were also seeded with explicit Ids
-        await db.Database.ExecuteSqlRawAsync(
-            "SELECT setval(pg_get_serial_sequence('\"Bookings\"', 'Id'), COALESCE((SELECT MAX(\"Id\") FROM \"Bookings\"), 0) + 1, false);");
     }
 }

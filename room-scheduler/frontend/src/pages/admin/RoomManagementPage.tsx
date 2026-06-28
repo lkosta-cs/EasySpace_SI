@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,11 +6,23 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { roomsApi, type RoomListItem, type RoomsQueryParams } from '../../api/rooms';
+import { useUrlState } from '../../hooks/useUrlState';
 
 type Room = RoomListItem;
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100];
 const SORT_FIELDS: NonNullable<RoomsQueryParams['sortBy']>[] = ['name', 'seats', 'status'];
+
+const URL_DEFAULTS = {
+  search: '',
+  minSeats: '',
+  softwarePackage: '',
+  status: 'all' as 'all' | 'active' | 'inactive',
+  sortBy: 'name' as NonNullable<RoomsQueryParams['sortBy']>,
+  sortDir: 'asc' as NonNullable<RoomsQueryParams['sortDir']>,
+  page: 1,
+  pageSize: 20,
+};
 
 export default function RoomManagementPage() {
   const qc = useQueryClient();
@@ -18,29 +30,30 @@ export default function RoomManagementPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
 
+  // Applied filters, sort and paging — persisted to the URL so they survive refresh/back/share
+  const [urlState, setUrlState] = useUrlState(URL_DEFAULTS, 'rooms-filters');
+  const { sortBy, sortDir, page, pageSize } = urlState;
+
   // Draft filter values — only applied to the query when "Search" is clicked
-  const [searchDraft, setSearchDraft] = useState('');
-  const [minSeatsDraft, setMinSeatsDraft] = useState('');
-  const [softwarePackageDraft, setSoftwarePackageDraft] = useState('');
-  const [statusDraft, setStatusDraft] = useState<'all' | 'active' | 'inactive'>('all');
+  const [searchDraft, setSearchDraft] = useState(urlState.search);
+  const [minSeatsDraft, setMinSeatsDraft] = useState(urlState.minSeats);
+  const [softwarePackageDraft, setSoftwarePackageDraft] = useState(urlState.softwarePackage);
+  const [statusDraft, setStatusDraft] = useState(urlState.status);
 
-  // Applied filters — actually sent to the server
-  const [appliedSearch, setAppliedSearch] = useState('');
-  const [appliedMinSeats, setAppliedMinSeats] = useState('');
-  const [appliedSoftwarePackage, setAppliedSoftwarePackage] = useState('');
-  const [appliedStatus, setAppliedStatus] = useState<'all' | 'active' | 'inactive'>('all');
-
-  // Sorting and paging — applied immediately
-  const [sortBy, setSortBy] = useState<NonNullable<RoomsQueryParams['sortBy']>>('name');
-  const [sortDir, setSortDir] = useState<NonNullable<RoomsQueryParams['sortDir']>>('asc');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  // Re-sync drafts whenever the applied filters change from outside the Search button
+  // (URL restored from storage, or navigating directly to a URL with different params).
+  useEffect(() => {
+    setSearchDraft(urlState.search);
+    setMinSeatsDraft(urlState.minSeats);
+    setSoftwarePackageDraft(urlState.softwarePackage);
+    setStatusDraft(urlState.status);
+  }, [urlState.search, urlState.minSeats, urlState.softwarePackage, urlState.status]);
 
   const queryParams: RoomsQueryParams = {
-    search: appliedSearch || undefined,
-    minSeats: appliedMinSeats ? Number(appliedMinSeats) : undefined,
-    softwarePackage: appliedSoftwarePackage || undefined,
-    status: appliedStatus === 'all' ? undefined : appliedStatus,
+    search: urlState.search || undefined,
+    minSeats: urlState.minSeats ? Number(urlState.minSeats) : undefined,
+    softwarePackage: urlState.softwarePackage || undefined,
+    status: urlState.status === 'all' ? undefined : urlState.status,
     sortBy,
     sortDir,
     page,
@@ -70,26 +83,25 @@ export default function RoomManagementPage() {
   });
 
   const runSearch = () => {
-    setAppliedSearch(searchDraft.trim());
-    setAppliedMinSeats(minSeatsDraft.trim());
-    setAppliedSoftwarePackage(softwarePackageDraft);
-    setAppliedStatus(statusDraft);
-    setPage(1);
+    setUrlState({
+      search: searchDraft.trim(),
+      minSeats: minSeatsDraft.trim(),
+      softwarePackage: softwarePackageDraft,
+      status: statusDraft,
+      page: 1,
+    });
   };
 
   const toggleSort = (field: NonNullable<RoomsQueryParams['sortBy']>) => {
     if (sortBy === field) {
-      setSortDir((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      setUrlState({ sortDir: sortDir === 'asc' ? 'desc' : 'asc', page: 1 });
     } else {
-      setSortBy(field);
-      setSortDir('asc');
+      setUrlState({ sortBy: field, sortDir: 'asc', page: 1 });
     }
-    setPage(1);
   };
 
   const changePageSize = (value: number) => {
-    setPageSize(value);
-    setPage(1);
+    setUrlState({ pageSize: value, page: 1 });
   };
 
   const {
@@ -358,7 +370,7 @@ export default function RoomManagementPage() {
       ) : rooms.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <p className="text-sm">
-            {appliedSearch || appliedMinSeats || appliedSoftwarePackage || appliedStatus !== 'all'
+            {urlState.search || urlState.minSeats || urlState.softwarePackage || urlState.status !== 'all'
               ? t('rooms.noRoomsFiltered')
               : t('rooms.noRooms')}
           </p>
@@ -447,7 +459,7 @@ export default function RoomManagementPage() {
               <button
                 type="button"
                 disabled={page <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setUrlState({ page: Math.max(1, page - 1) })}
                 className="text-xs px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 {t('rooms.pagePrev')}
@@ -458,7 +470,7 @@ export default function RoomManagementPage() {
               <button
                 type="button"
                 disabled={page >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() => setUrlState({ page: Math.min(totalPages, page + 1) })}
                 className="text-xs px-3 py-1.5 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 {t('rooms.pageNext')}

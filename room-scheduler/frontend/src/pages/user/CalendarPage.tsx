@@ -9,10 +9,12 @@ import { useTranslation } from 'react-i18next';
 import { bookingsApi, type EditScope } from '../../api/bookings';
 import { roomsApi } from '../../api/rooms';
 import { occasionConfigApi } from '../../api/occasionConfig';
+import { userDirectoryApi } from '../../api/userDirectory';
 import { useAuthStore } from '../../stores/authStore';
 import { format } from 'date-fns';
 import BookingFormModal from '../../components/BookingFormModal';
 import RecurringScopeModal from '../../components/RecurringScopeModal';
+import { useUrlState, resolveUrlSet, toUrlArray } from '../../hooks/useUrlState';
 
 interface Booking {
   id: number;
@@ -56,6 +58,14 @@ interface OccasionConfig {
   color: string;
 }
 
+const URL_DEFAULTS = {
+  showCancelled: false,
+  occasionTypes: ['0', '1', '2'] as string[],
+  departments: [...DEPARTMENTS] as string[],
+  users: [] as string[],
+  rooms: [] as string[],
+};
+
 export default function CalendarPage() {
   const qc = useQueryClient();
   const { user } = useAuthStore();
@@ -67,65 +77,19 @@ export default function CalendarPage() {
   const [editBookingId, setEditBookingId] = useState<number | null>(null);
   const [detailModal, setDetailModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [showCancelled, setShowCancelled] = useState(false);
 
-  const [selectedDepartments, setSelectedDepartments] = useState<Set<string>>(
-    new Set(DEPARTMENTS)
-  );
+  // Filters — persisted to the URL (and localStorage as a fallback for plain navigation)
+  const [urlState, setUrlState] = useUrlState(URL_DEFAULTS, 'calendar-filters');
+  const showCancelled = urlState.showCancelled;
+
   const [deptDropdownOpen, setDeptDropdownOpen] = useState(false);
   const deptDropdownRef = useRef<HTMLDivElement>(null);
-
-  const toggleDepartment = (dept: string) => {
-    setSelectedDepartments((prev) => {
-      const next = new Set(prev);
-      if (next.has(dept)) next.delete(dept);
-      else next.add(dept);
-      return next;
-    });
-  };
-
-  const [selectedOccasionTypes, setSelectedOccasionTypes] = useState<Set<number>>(
-    new Set([0, 1, 2])
-  );
   const [occasionDropdownOpen, setOccasionDropdownOpen] = useState(false);
   const occasionDropdownRef = useRef<HTMLDivElement>(null);
-
-  const toggleOccasionType = (value: number) => {
-    setSelectedOccasionTypes((prev) => {
-      const next = new Set(prev);
-      if (next.has(value)) next.delete(value);
-      else next.add(value);
-      return next;
-    });
-  };
-
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
-  const usersInitializedRef = useRef(false);
-
-  const toggleUserId = (id: string) => {
-    setSelectedUserIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const [selectedRoomIds, setSelectedRoomIds] = useState<Set<number>>(new Set());
   const [roomDropdownOpen, setRoomDropdownOpen] = useState(false);
   const roomDropdownRef = useRef<HTMLDivElement>(null);
-  const roomsInitializedRef = useRef(false);
-
-  const toggleRoomId = (id: number) => {
-    setSelectedRoomIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
 
   useEffect(() => {
     const onClickOutside = (e: MouseEvent) => {
@@ -168,37 +132,55 @@ export default function CalendarPage() {
     queryFn: occasionConfigApi.getAll,
   });
 
+  // Full list of bookable staff, independent of who currently has bookings,
+  // so the filter always offers every Professor/Assistant — not just ones with existing bookings.
+  const { data: bookableUsers = [] } = useQuery({
+    queryKey: ['userDirectory', 'bookable'],
+    queryFn: userDirectoryApi.getBookable,
+  });
+
   const getConfig = (occasionType: number): OccasionConfig | undefined =>
     configs.find((c: OccasionConfig) => c.occasionType === occasionType);
 
-  const bookingUsers = useMemo(() => {
-    const map = new Map<string, string>();
-    bookings.forEach((b: Booking) => {
-      if (b.userId) map.set(b.userId, b.userName);
-    });
-    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
-  }, [bookings]);
+  const selectedOccasionTypes = resolveUrlSet(urlState.occasionTypes, Number, [0, 1, 2]);
+  const selectedDepartments = resolveUrlSet(urlState.departments, (v) => v, [...DEPARTMENTS]);
+  const selectedUserIds = resolveUrlSet(urlState.users, (v) => v, bookableUsers.map((u) => u.id));
+  const selectedRoomIds = resolveUrlSet(urlState.rooms, Number, rooms.map((r: Room) => r.id));
 
-  useEffect(() => {
-    if (!usersInitializedRef.current && bookingUsers.length > 0) {
-      setSelectedUserIds(new Set(bookingUsers.map((u) => u.id)));
-      usersInitializedRef.current = true;
-    }
-  }, [bookingUsers]);
+  const toggleDepartment = (dept: string) => {
+    const next = new Set(selectedDepartments);
+    if (next.has(dept)) next.delete(dept);
+    else next.add(dept);
+    setUrlState({ departments: toUrlArray(next) });
+  };
 
-  useEffect(() => {
-    if (!roomsInitializedRef.current && rooms.length > 0) {
-      setSelectedRoomIds(new Set(rooms.map((r: Room) => r.id)));
-      roomsInitializedRef.current = true;
-    }
-  }, [rooms]);
+  const toggleOccasionType = (value: number) => {
+    const next = new Set(selectedOccasionTypes);
+    if (next.has(value)) next.delete(value);
+    else next.add(value);
+    setUrlState({ occasionTypes: toUrlArray(next) });
+  };
+
+  const toggleUserId = (id: string) => {
+    const next = new Set(selectedUserIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setUrlState({ users: toUrlArray(next) });
+  };
+
+  const toggleRoomId = (id: number) => {
+    const next = new Set(selectedRoomIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setUrlState({ rooms: toUrlArray(next) });
+  };
 
   const filteredBookings = useMemo(() => {
     return bookings.filter((b: Booking) => {
       if (b.isCancelled && !showCancelled) return false;
       if (!selectedOccasionTypes.has(b.occasionType)) return false;
-      if (usersInitializedRef.current && !selectedUserIds.has(b.userId)) return false;
-      if (roomsInitializedRef.current && !selectedRoomIds.has(b.roomId)) return false;
+      if (!selectedUserIds.has(b.userId)) return false;
+      if (!selectedRoomIds.has(b.roomId)) return false;
       if (!b.departmentLabel) return true;
       return selectedDepartments.has(b.departmentLabel);
     });
@@ -314,7 +296,7 @@ export default function CalendarPage() {
           <input
             type="checkbox"
             checked={showCancelled}
-            onChange={() => setShowCancelled((v) => !v)}
+            onChange={() => setUrlState({ showCancelled: !showCancelled })}
             className="rounded border-gray-300"
           />
           {t('calendar.filterCancelled')}
@@ -333,14 +315,14 @@ export default function CalendarPage() {
               <div className="flex justify-between mb-2">
                 <button
                   type="button"
-                  onClick={() => setSelectedOccasionTypes(new Set(OCCASION_TYPES.map(o => o.value)))}
+                  onClick={() => setUrlState({ occasionTypes: OCCASION_TYPES.map((o) => String(o.value)) })}
                   className="text-xs text-gray-500 hover:text-gray-900"
                 >
                   {t('calendar.selectAll')}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedOccasionTypes(new Set())}
+                  onClick={() => setUrlState({ occasionTypes: toUrlArray(new Set()) })}
                   className="text-xs text-gray-500 hover:text-gray-900"
                 >
                   {t('calendar.clearAll')}
@@ -369,28 +351,28 @@ export default function CalendarPage() {
             onClick={() => setUserDropdownOpen((open) => !open)}
             className="text-xs text-gray-600 border border-gray-300 rounded-lg px-3 py-1 hover:bg-gray-50"
           >
-            {t('calendar.usersFilter')} ({selectedUserIds.size}/{bookingUsers.length}) ▾
+            {t('calendar.usersFilter')} ({selectedUserIds.size}/{bookableUsers.length}) ▾
           </button>
           {userDropdownOpen && (
             <div className="absolute z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-56">
               <div className="flex justify-between mb-2">
                 <button
                   type="button"
-                  onClick={() => setSelectedUserIds(new Set(bookingUsers.map(u => u.id)))}
+                  onClick={() => setUrlState({ users: [] })}
                   className="text-xs text-gray-500 hover:text-gray-900"
                 >
                   {t('calendar.selectAll')}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedUserIds(new Set())}
+                  onClick={() => setUrlState({ users: toUrlArray(new Set()) })}
                   className="text-xs text-gray-500 hover:text-gray-900"
                 >
                   {t('calendar.clearAll')}
                 </button>
               </div>
               <div className="space-y-1.5 max-h-56 overflow-y-auto">
-                {bookingUsers.map((u) => (
+                {bookableUsers.map((u) => (
                   <label key={u.id} className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
                     <input
                       type="checkbox"
@@ -398,7 +380,7 @@ export default function CalendarPage() {
                       onChange={() => toggleUserId(u.id)}
                       className="rounded border-gray-300"
                     />
-                    {u.name}
+                    {u.fullName}
                   </label>
                 ))}
               </div>
@@ -419,14 +401,14 @@ export default function CalendarPage() {
               <div className="flex justify-between mb-2">
                 <button
                   type="button"
-                  onClick={() => setSelectedRoomIds(new Set(rooms.map((r: Room) => r.id)))}
+                  onClick={() => setUrlState({ rooms: [] })}
                   className="text-xs text-gray-500 hover:text-gray-900"
                 >
                   {t('calendar.selectAll')}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedRoomIds(new Set())}
+                  onClick={() => setUrlState({ rooms: toUrlArray(new Set()) })}
                   className="text-xs text-gray-500 hover:text-gray-900"
                 >
                   {t('calendar.clearAll')}
@@ -462,14 +444,14 @@ export default function CalendarPage() {
               <div className="flex justify-between mb-2">
                 <button
                   type="button"
-                  onClick={() => setSelectedDepartments(new Set(DEPARTMENTS))}
+                  onClick={() => setUrlState({ departments: [...DEPARTMENTS] })}
                   className="text-xs text-gray-500 hover:text-gray-900"
                 >
                   {t('calendar.selectAll')}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setSelectedDepartments(new Set())}
+                  onClick={() => setUrlState({ departments: toUrlArray(new Set()) })}
                   className="text-xs text-gray-500 hover:text-gray-900"
                 >
                   {t('calendar.clearAll')}

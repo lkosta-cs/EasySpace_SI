@@ -22,9 +22,9 @@ public class Booking
 
 public enum OccasionType
 {
-    Kolokvijum = 0,
-    Ispit = 1,
-    LabVezbe = 2
+    MidtermExam = 0,
+    Exam = 1,
+    LabSession = 2
 }
 
 public enum RecurrencePattern
