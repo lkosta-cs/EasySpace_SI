@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
 using RoomScheduler.API.Models;
-using RoomScheduler.API.Resources;
 using RoomScheduler.API.Services;
 
 namespace RoomScheduler.API.Controllers;

@@ -4,7 +4,6 @@
     using Microsoft.Extensions.Localization;
     using RoomScheduler.API.Data;
     using RoomScheduler.API.Models;
-    using RoomScheduler.API.Resources;
     using RoomScheduler.API.Services;
     using System.Security.Claims;
 
