@@ -8,7 +8,9 @@
       "Bash(dotnet build *)",
       "Bash(Remove-Item \"c:\\\\Users\\\\luka\\\\Documents\\\\1 Fakultet\\\\EasySpace_SI\\\\room-scheduler\\\\frontend\\\\src\\\\pages\\\\admin\\\\PendingBookingsPage.tsx\")",
       "Bash(Get-ChildItem -Recurse -Filter \"*Permission*\")",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Bash(tasklist)",
+      "Bash(taskkill //PID 30572 //F)"
     ]
   }
 }

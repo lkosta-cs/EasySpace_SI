@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Localization;
-using RoomScheduler.API.Resources;
 
 namespace RoomScheduler.API.Services;
 

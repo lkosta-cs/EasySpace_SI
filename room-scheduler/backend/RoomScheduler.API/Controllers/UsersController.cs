@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using RoomScheduler.API.Models;
-using RoomScheduler.API.Resources;
 
 namespace RoomScheduler.API.Controllers;
 

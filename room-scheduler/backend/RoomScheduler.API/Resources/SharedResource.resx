@@ -48,16 +48,16 @@
     <value>Reset your EasySpace password</value>
   </data>
   <data name="EmailPasswordResetH2" xml:space="preserve">
-    <value>Reset your password</value>
+    <value>Password Reset Request</value>
   </data>
   <data name="EmailPasswordResetP" xml:space="preserve">
-    <value>Click the link below to reset your password:</value>
+    <value>We received a request to reset the password for your EasySpace account. Click the link below to choose a new password:</value>
   </data>
   <data name="EmailPasswordResetExpiry" xml:space="preserve">
-    <value>This link expires in 1 hour.</value>
+    <value>For your security, this link will expire in 1 hour.</value>
   </data>
   <data name="EmailPasswordResetIgnore" xml:space="preserve">
-    <value>If you did not request a password reset, ignore this email.</value>
+    <value>If you did not request a password reset, you can safely ignore this email — your password will remain unchanged.</value>
   </data>
 
   <!-- Email: cancelled -->
@@ -65,15 +65,15 @@
     <value>Your booking has been cancelled</value>
   </data>
   <data name="EmailCancelledH2" xml:space="preserve">
-    <value>Booking cancelled</value>
+    <value>Booking Cancelled</value>
   </data>
   <data name="EmailCancelledBody" xml:space="preserve">
-    <value>Your booking has been cancelled by an administrator:</value>
+    <value>We're writing to let you know that the following booking has been cancelled by an administrator:</value>
   </data>
 
   <!-- Email: shared -->
   <data name="EmailGreeting" xml:space="preserve">
-    <value>Hi</value>
+    <value>Hello</value>
   </data>
   <data name="EmailRoom" xml:space="preserve">
     <value>Room</value>

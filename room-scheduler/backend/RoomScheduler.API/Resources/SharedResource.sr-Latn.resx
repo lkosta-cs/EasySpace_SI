@@ -45,19 +45,19 @@
 
   <!-- Email: password reset -->
   <data name="EmailPasswordResetSubject" xml:space="preserve">
-    <value>Resetujte svoju EasySpace lozinku</value>
+    <value>Resetovanje lozinke za vaš EasySpace nalog</value>
   </data>
   <data name="EmailPasswordResetH2" xml:space="preserve">
-    <value>Resetujte lozinku</value>
+    <value>Zahtev za resetovanje lozinke</value>
   </data>
   <data name="EmailPasswordResetP" xml:space="preserve">
-    <value>Kliknite na link ispod da resetujete lozinku:</value>
+    <value>Primili smo zahtev za resetovanje lozinke za vaš EasySpace nalog. Kliknite na link ispod da biste postavili novu lozinku:</value>
   </data>
   <data name="EmailPasswordResetExpiry" xml:space="preserve">
-    <value>Link ističe za 1 sat.</value>
+    <value>Iz bezbednosnih razloga, ovaj link ističe za 1 sat.</value>
   </data>
   <data name="EmailPasswordResetIgnore" xml:space="preserve">
-    <value>Ako niste zatražili resetovanje lozinke, ignorišite ovaj email.</value>
+    <value>Ako niste vi zatražili ovu promenu, slobodno ignorišite ovaj email — vaša lozinka ostaje nepromenjena.</value>
   </data>
 
   <!-- Email: cancelled -->
@@ -68,12 +68,12 @@
     <value>Rezervacija otkazana</value>
   </data>
   <data name="EmailCancelledBody" xml:space="preserve">
-    <value>Vašu rezervaciju je otkazao administrator:</value>
+    <value>Obaveštavamo vas da je sledeću rezervaciju otkazao administrator:</value>
   </data>
 
   <!-- Email: shared -->
   <data name="EmailGreeting" xml:space="preserve">
-    <value>Zdravo</value>
+    <value>Poštovani</value>
   </data>
   <data name="EmailRoom" xml:space="preserve">
     <value>Sala</value>
